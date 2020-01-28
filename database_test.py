@@ -1,32 +1,25 @@
 from app import db
-from models import Plot, Measure, check_all_files, check_all_plots
+from models import Plot, Measure, check_all_files, check_all_plots, add_measure_entry, add_plot_entry
 
 if __name__ == "__main__":
     if True:
         for i in range(50):
-            m = Measure(kind = "VNA", relative_path = "/some/thing_%d.h5"%i)
-            db.session.add(m)
-        db.session.commit()
+            add_measure_entry(relative_path = "/some/thing_%d.h5"%i, started_time = "some time", kind = "Unknown", comment = "", commit = True)
 
         for i in range(20):
-            p = Plot(kind = "single")
-            p.associate_files(file_paths = "/some/thing_%d.h5"%i)
-        db.session.commit()
+            add_plot_entry(relative_path = "/some/thing_%d.png"%i, kind ="single", backend = "matplotlib", sources = "/some/thing_%d.h5"%i, comment = "", commit = True)
 
         path_lst = []
-        p = Plot(kind = "multi")
         for i in range(20):
             path_lst.append(
-                "/some/thing_%d.h5"%(i+20)
+                "/some/thing_%d.h5"%i
             )
-        p.associate_files(file_paths = path_lst)
-        db.session.commit()
+        add_plot_entry(relative_path = "/some/thing_multi.png", kind =  "multi", backend = "plotly", sources = path_lst, comment = "", commit = True)
 
         for i in range(20):
-            p = Plot(kind = "single")
-            p.associate_files(file_paths = "/some/thing_%d.h5"%31)
-        db.session.commit()
+            add_plot_entry(relative_path = "/some/thing_%d.png"%(i+50), kind = "single", backend = "matplotly", sources = "/some/thing_%d.h5"%31, comment = "", commit = True)
 
+        print("Printing stuff...")
         for my_plot in Plot.query.all():
             print("\n")
             print(my_plot.id)
@@ -39,5 +32,10 @@ if __name__ == "__main__":
                 for i in range(len(path_list)):
                     print(path_list[i],kind_list[i] )
     #USRP_Delay_20200124_181021.h5
+    check_all_files()
+    check_all_plots()
+
+    print("check twice")
+
     check_all_files()
     check_all_plots()

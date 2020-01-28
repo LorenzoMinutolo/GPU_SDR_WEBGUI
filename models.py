@@ -1,6 +1,6 @@
 from datetime import datetime
 from app import app,db
-from sqlalchemy.orm.exc import NoResultFound, StaleDataError
+from sqlalchemy.orm.exc import NoResultFound, StaleDataError, MultipleResultsFound
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from search import add_to_index, remove_from_index, query_index
@@ -35,11 +35,11 @@ class Measure(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     kind = db.Column(db.String(140))
     started_time = db.Column(db.String(140))
-    relative_path = db.Column(db.String(200), unique=True)
+    relative_path = db.Column(db.String(200))
     comment = db.Column(db.String(300))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author = db.Column(db.Integer, db.ForeignKey('user.id'))
-    plot = db.relationship('Plot', secondary="PlotVsMeasure", backref='Measure')
+    plot = db.relationship('Plot', secondary="PlotVsMeasure", back_populates='measure') #, passive_deletes=True
 
     def get_plots(self):
         '''
@@ -95,13 +95,18 @@ def add_measure_entry(relative_path, started_time, kind = "Unknown", comment = "
     '''
     Register a measure in the database.
     '''
+    if current_user != None:
+        author = current_user.username
+    else:
+        author = "TestEnv"
     m = Measure(
         relative_path = relative_path,
         started_time = started_time,
         kind = kind,
         comment = comment,
-        author = current_user.username
+        author = author
     )
+    db.session.add(m)
     if commit:
         db.session.commit()
     else:
@@ -112,11 +117,11 @@ class Plot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     kind = db.Column(db.String(140))
     backend = db.Column(db.String(140))
-    relative_path = db.Column(db.String(200), unique=True)
+    relative_path = db.Column(db.String(200))
     comment = db.Column(db.String(300))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author = db.Column(db.Integer, db.ForeignKey('user.id'))
-    measure = db.relationship('Measure', secondary="PlotVsMeasure", backref='Plot')
+    measure = db.relationship('Measure', secondary="PlotVsMeasure", back_populates='plot')
 
     def associate_files(self, file_paths):
         '''
@@ -161,13 +166,19 @@ def add_plot_entry(relative_path, kind, backend, sources, comment = "", commit =
     Arguments:
         - sources is a list of file paths or a string with a single file path
     '''
-
+    if current_user != None:
+        author = current_user.username
+    else:
+        author = "TestEnv"
+    print(relative_path)
     p = Plot(
         relative_path = relative_path,
         kind = kind,
         backend = backend,
-        comment = comment
+        comment = comment,
+        author = author
     )
+    db.session.add(p)
     p.associate_files(sources)
     if commit:
         db.session.commit()
@@ -178,7 +189,8 @@ def add_plot_entry(relative_path, kind, backend, sources, comment = "", commit =
 PlotVsMeasure = db.Table('PlotVsMeasure',
     db.Column('id', db.Integer, primary_key=True),
     db.Column('measure_id', db.Integer, db.ForeignKey('Measure.id')),
-    db.Column('plot_id', db.Integer, db.ForeignKey('Plot.id'))
+    db.Column('plot_id', db.Integer, db.ForeignKey('Plot.id')),
+    db.UniqueConstraint('measure_id', 'plot_id', name='unique_const')
 )
 
 
@@ -187,12 +199,14 @@ def remove_measure_entry(rel_path):
     Remove a Measure entry from the database.
     '''
     try:
-        db.session.delete(Measure.query.filter(Measure.relative_path == rel_path).one())
+        x = Measure.query.filter(Measure.relative_path == rel_path).one()
+        db.session.delete(x)
         db.session.commit()
         return True
     except NoResultFound:
         print_warning("Cannot find %s measure entry in the database")
         return False
+
 
 def remove_plot_entry(rel_path):
     '''
@@ -204,6 +218,8 @@ def remove_plot_entry(rel_path):
         return True
     except NoResultFound:
         print_warning("Cannot find %s measure entry in the database")
+        return False
+    except StaleDataError:
         return False
 
 def check_all_files():
@@ -237,7 +253,7 @@ def check_all_plots():
             res = False
         if not res:
             print_warning("%s does not exist, removing..."%(p.relative_path))
-            ret = remove_plot_entry(m.relative_path)
+            ret = remove_plot_entry(p.relative_path)
             if not ret:
                 print_error("Something went wrong in database logic")
 
