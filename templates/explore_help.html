@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+<div class="row" style="margin: 0px; padding-top: 50px; padding-right: 10px; padding-left: 10px;">
+<h1>Mearue explore help</h1>
+This section contains information about the measure explorer tool. This tool is intended as a first approach to explore the measures. Many things can go wrong (i.e. the measure is not indexed, the web interface is wrong) when one attempt to use this section with custom measures/analysis/plotting.
+There are at least two cases that led you to this page:
+<li>I did everything right and the system does not work. --> read the FAQ.</li>
+<li>I want-to-try/tried something new and it doesn't work. --> Scroll down and read the developmend guide.</li>
+
+<fieldset style ="width:900px; border: 2px groove (internal value); ">
+  <legend style="font-weight:bold;padding-top: 50px;">FAQ</legend>
+
+    <h5 class="collapsible" style = "background-color: #dce0e8; padding: 3px 6px;">Any restriction on filename?</h5>
+    <div class="content" >
+      <p style=" width: 750px; border: thin silver solid; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); margin: 0.5em; padding: 0.5em;">There are restriction on the filename: cannot be longer than 2048 characters and cannot contain spaces. The interface only recognises files ending with the ".h5" extension.</p>
+    </div>
+    <h5 class="collapsible" style = "background-color: #dce0e8; padding: 3px 6px;">How does the folder structure works?</h5>
+    <div class="content" >
+      <p style=" width: 750px; border: thin silver solid; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); margin: 0.5em; padding: 0.5em;">The main mesure folder is the one the by the path variable (you can change it in settings and explore folder section). in this Folder one can keep both: subfolders and h5 files. The interface allow to explore only the first layer of subfolders (i.e. the subfolders of subfolders will not be considered)</p>
+    </div>
+    <h5 class="collapsible" style = "background-color: #dce0e8; padding: 3px 6px;">Can I analyze and plot measures not taken using this inteface?</h5>
+    <div class="content" >
+      <p style=" width: 750px; border: thin silver solid; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); margin: 0.5em; padding: 0.5em;">Yes. The files have to be in the path folder or in a subdirectory. Note that many attributes (Temperatures, Other instruments values...) may not be present in the measure when using a custom script.</p>
+    </div>
+    <h5 class="collapsible" style = "background-color: #dce0e8; padding: 3px 6px;">Can I modidy an attribute of the measure?</h5>
+    <div class="content" >
+      <p style=" width: 750px; border: thin silver solid; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); margin: 0.5em; padding: 0.5em;">No, not using this system. In order to modify the measures attributes you have to do it manually. The easyest way is to install h5py python module and use the low level API.</p>
+    </div>
+    
+    
+
+</fieldset>
+
+<h3>How to add a plotting mode, analysis tool...?</h3>
+This is not provided yet.
+
+<style>
+
+
+.content {
+  padding: 0 18px;
+  background-color: white;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+</style>
+
+<script>
+var coll = document.getElementsByClassName("collapsible");
+var i;
+
+for (i = 0; i < coll.length; i++) {
+  coll[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var content = this.nextElementSibling;
+    if (content.style.maxHeight){
+      content.style.maxHeight = null;
+    } else {
+      content.style.maxHeight = content.scrollHeight + "px";
+    }
+  });
+}
+</script>
+
+</div>
+{% endblock %}

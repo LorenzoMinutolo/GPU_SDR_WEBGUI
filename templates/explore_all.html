@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+ <script type="text/javascript">
+            ( function($) {
+            $(document).ready(function() {
+                              $('#files').DataTable({select: true});
+                              } );
+             } ) ( jQuery );
+        </script>
+
+
+
+
+<form method="post" >
+<div class="row" style="margin: 0px; padding-top: 5px; padding-right: 10px; padding-left: 10px">
+    <!-- this div is just to pad from the bar -->
+    <form method="post" ><!--action="/explore"-->
+        <input type="submit" name="select_button" value="Show files >>" style="float:right;">
+    </form>
+
+    <table id="files" class="table" style="width:95%">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Size</th>
+                <th>Select</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for file_db in allfiles: %}
+            <tr>
+                <td>{{ file_db[0] }}</td>
+                <td>{{ file_db[1] }}</td>
+                <td>
+
+                    <input type="checkbox" name=file_db[0]>
+
+                </td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+
+    </table>
+
+</div>
+<hr>
+<div style="display: inline-block;">
+        <input type="submit" name="submit_button" value="Set path">
+        <input class="text" name="req_path" placeholder="Absolute path"></input>
+        Current path: </strong>{{current_meas_path|safe}}
+</div>
+</form>
+{% endblock %}

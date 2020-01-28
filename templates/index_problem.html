@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block head %}
+<head>
+    {{ super() }}
+    <style type="text/css">
+        /* The sidebar menu */
+        .sidenav {
+            height: 100%; /* Full-height: remove this if you want "auto" height */
+            width: 160px; /* Set the width of the sidebar */
+            position: fixed; /* Fixed Sidebar (stay in place on scroll) */
+            z-index: 1; /* Stay on top */
+            top: 50; /* Stay at the top */
+            left: 0;
+            background-color: #F5F5F5; /* Black */
+            overflow-x: hidden; /* Disable horizontal scroll */
+            padding-top: 00px;
+        }
+
+    /* The navigation menu links */
+    .sidenav a {
+        padding: 6px 8px 6px 16px;
+        text-decoration: none;
+        font-size: 16px;
+        color: #111;
+        display: block;
+    }
+
+    /* When you mouse over the navigation links, change their color */
+    .sidenav a:hover {
+        color: #3399ff;
+    }
+
+    /* Style page content */
+    .main {
+        margin-left: 160px; /* Same as the width of the sidebar */
+        padding: 0px 10px;
+    }
+
+    /* On smaller screens, where height is less than 450px, change the style of the sidebar (less padding and a smaller font size) */
+    @media screen and (max-height: 450px) {
+        .sidenav {padding-top: 15px;}
+        .sidenav a {font-size: 18px;}
+    }
+
+    </style>
+</head>
+{% endblock %}
+{% block content %}
+
+
+
+<!-- Side navigation -->
+<div class="sidenav">
+    <a href="{{ url_for('index') }}">All measures</a>
+    <a href="{{ url_for('index_help') }}">Recent problems</a>
+    <a href="{{ url_for('index_help') }}">Help</a>
+    <a href="{{ url_for('index_about') }}">About</a>
+</div>
+
+<!-- Page content -->
+<div class="main">
+    <div class="content">
+        <h1 style="margin: 0px; padding-top: 70px">Daje, {{ current_user.username }}!</h1>
+        TODOs:
+        <li>Make the data explorer work (both instances)</li>
+        <li>Add comment, time, default attributes and extend the attribute list with keyword argument </li>
+
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 style="margin: 0px; padding-top: 70px">Begin session</h1>
+<form action="" method="post">
+    {{ form.hidden_tag() }}
+    <p>
+    {{ form.session.label }}<br>
+    {{ form.session(size=32) }}<br>
+    {% for error in form.session.errors %}
+    <span style="color: red;">[{{ error }}]</span>
+    {% endfor %}
+    </p>
+
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

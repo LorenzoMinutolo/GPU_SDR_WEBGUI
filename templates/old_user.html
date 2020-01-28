@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 style="margin: 0px; padding-top: 70px">User: {{ user.username }}{% if user.last_seen %}<p>Last seen on: {{ user.last_seen }}</p>{% endif %}</h1>
+<hr>
+{% for session in sessions %}
+<p>
+{{ session.author.username }} did: <b>{{ session.body }}</b>
+</p>
+{% endfor %}
+<nav aria-label="...">
+    <ul class="pager">
+        <li class="previous{% if not prev_url %} disabled{% endif %}">
+            <a href="{{ prev_url or '#' }}">
+                <span aria-hidden="true">&larr;</span>
+                {{ ('Previous results') }}
+            </a>
+        </li>
+        <li class="next{% if not next_url %} disabled{% endif %}">
+            <a href="{{ next_url or '#' }}">
+                {{ ('Next results') }}
+                <span aria-hidden="true">&rarr;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endblock %}

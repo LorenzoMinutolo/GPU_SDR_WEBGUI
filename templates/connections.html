@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid"> <!-- If Needed Left and Right Padding in 'md' and 'lg' screen means use container class -->
+
+  <div style="padding-top:15px;">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <b>Server connection</b>
+        <i style="margin-left:15px" id = "last-ping"> Last ping.. # sec ago </i>
+        <i style="margin-left:15px" id = "connection-status"> <!-- js will write here --> Connection: waiting javascript... </i>
+        <button  value="disconnect" class="add", id="disconnect_btn" onclick="disconnect()" style="float: right; margin-right:5px;">Disconnect</button>
+        <button  value="connect" class="add", id="connect_btn" onclick="connect()" style="float: right; margin-right:5px;">Connect</button>
+        <input type="text" id="addr_val" placeholder=ip-addr value="127.0.0.1" style="float: right; margin-right:5px;">
+      </div>
+
+      <div class="panel-body", id = "usrp-info">
+
+      {% if binary_connected%}
+      {% for usrp in usrp_prop %}
+
+      {% for key,value in usrp.items() %}
+      {{key}} : {{value}}<br>
+      {% endfor %}<br>
+
+      {% for dcard in dcard_prop %}
+      {% for key,value in dcard.items() %}
+      {{key}} : {{value}}<br>
+      {% endfor %}<br>
+
+      {% endfor %}
+      {% endfor %}
+      {%endif%}
+      </div>
+
+      <div class="panel-body", id = "gpu-info">
+      {% if binary_connected%}
+      {% for gpu in gpu_prop %}
+      {% for key,value in gpu.items() %}
+      {{key}} : {{value}}<br>
+      {% endfor %}<br>
+      {% endfor %}
+      </div>
+      {%endif%}
+    </div>
+  </div>
+</div>
+
+<script>var connected = {{ binary_connected }}//JS + Jinja2}</script>
+<script type="text/javascript" src={{ url_for('static', filename = 'js/connections.js') }}></script>
+{% endblock %}

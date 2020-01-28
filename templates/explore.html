@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+
+{% if err['enable']: %}
+
+<script>
+alert("{{err['message']}}");
+</script>
+{% endif %}
+
+<script type="text/javascript" src={{ url_for('static', filename = 'js/explore.js') }}></script>
+
+<!-- This whole page is structured as a single form. Horrible but I cannot use the flask.form.request() method on a specific form name-->
+<form method="post" >
+<!-- Head buttons -->
+<div class="row" style="margin: 0px; padding-top: 0px; padding-right: 10px; padding-left: 10px;">
+  <div>
+    <h3>
+      <!-- This is an hackish way to use Jinja2 but the variable only live in each iteration scope-->
+      Current path:
+      {% set partial = [] %}
+      <a href="{{ url_for('explore') }}">data_root</a>/
+      {% for segment in visual_path %}
+        {% do partial.append(segment) %}
+        <a href="{{ url_for('explore') }}/{{ partial|join("/") }}/">{{segment}}</a>/
+      {% endfor %}
+    </h3>
+  </div>
+    <div class="column" style="float:left; width:500px;padding-right: 10px; border-right: 1px solid grey">
+            <input type="submit" name="select_button" value="Show files >>" onclick="submitFolders()" style="float:right;">
+    </div>
+    <div class="column" style="float:left; width:50%;padding-right: 10px; padding-left: 10px">
+            <input type="submit" name="plot_button" value="Plot">
+            <input type="submit" name="analyze_button" value="Analyze">
+            <input type="submit" name="export_button" value="Export">
+            <input type="submit" name="export_source" value="Use as source">
+    </div>
+</div>
+
+<!-- Give some margin to avoid the top bar -->
+<div class="row" style="margin: 0px; padding-top: 5px; padding-right: 10px; padding-left: 10px">
+
+    <!-- Folders table -->
+    <div class="column" style="float:left; width:500px ;padding-right: 10px; border-right: 1px solid grey">
+        <table id="folders" class="table" style="width:95%">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>File content</th>
+                    <th>Select</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for folder in allfolders: %}
+                <tr>
+                    <td><a href="{{ current_path }}{{ folder[0] }}/">{{ folder[0] }}</a></td>
+                    <td>{{ folder[1] }}</td>
+                    {% if folder[2]: %}
+                        <td><input type="checkbox" name ="folders" value= {{ (folder[0]) }} checked="checked"></td>
+                    {% else: %}
+                        <td><input type="checkbox" name ="folders" value= {{ (folder[0]) }} ></td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+    </div>
+    <!-- Files table -->
+    <div class="column" style="float:left; width:50%; padding-left: 10px">
+        <table id="files" class="table" style="width:95%">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Parent</th>
+                    <th>Size</th>
+                    <th>Kind</th>
+                    <th>Select</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for file_db in allfiles: %}
+                <tr>
+                    <td>{{ file_db[0] }}</td>
+                    <td>{{ file_db[1] }}</td>
+                    <td>{{ file_db[2] }}</td>
+                    <td>{{ file_db[3] }}</td>
+                    <td>
+                            <input type="checkbox" name = "files_selected" value={{ (file_db[0]) }}>
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+</div>
+<hr>
+</form>
+
+{% endblock %}

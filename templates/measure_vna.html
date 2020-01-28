@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+.content {
+  padding: 0 18px;
+  background-color: #d0d4db;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+</style>
+
+<h3> Vector Network Analyzer</h3>
+<div class="row" style="width:100%; height: 100%"">
+    <div class="column" style =
+          "float: left; width: 20%;
+          background-color: #d0d4db;
+          padding-left: 20px; padding-bottom: 20px;
+          margin-bottom: 20px;
+          height: 100%;
+          min-height: 700px"
+      >
+        <form style="padding-left: 10px; padding-right: 10px">
+          <div class="form-group">
+           <label for="start_F">Start frequency:</label>
+           <input type="text" placeholder="[MHz]" class="form-control" id="start_F">
+         </div>
+         <div class="form-group">
+           <label for="end_F">End Frequency:</label>
+           <input type="text" placeholder="[MHz]" class="form-control" id="end_F">
+         </div>
+         <div class="form-group">
+           <label for="central_F">LO Frequency:</label>
+           <input type="text" placeholder="[MHz]" class="form-control" id="central_F">
+         </div>
+         <div class="form-group">
+           <label for="scan_time">Single scan time:</label>
+           <input type="text" class="form-control" placeholder='seconds' id="scan_time">
+         </div>
+         <div class="form-group">
+           <label for="N_points">Number of points:</label>
+           <input type="text" class="form-control" placeholder='#' id="N_points">
+         </div>
+         <div class="form-group">
+           <label for="tx_gain">Transmission gain:</label>
+           <input type="text" class="form-control" placeholder='dB' id="tx_gain">
+         </div>
+          <hr align="left" width="90%">
+
+          <div class="row" style="width:100%; height: 30px; padding-left: 20px;">
+          <div class="column" style ="float: left; width: 25%;">
+            <button type="button" id="Start" onclick="get_variables()">Start</button>
+          </div>
+          <div class="column" id="resolution_display" style ="float: left; width: 70%; padding-left: 20px;">
+            Resolution: --
+          </div>
+          </div>
+
+          <hr align="left" width="90%">
+         <label class="collapsible" style = "background-color: #ffee0a;">Advanced</label>
+         <div class="content" >
+           <div class="form-group">
+             <label for="pass">Number of pass:</label>
+             <input type="text" class="form-control" id="pass">
+           </div>
+           <div class="form-group">
+             <label for="rx_gain">Receiver gain:</label>
+             <input type="text" class="form-control" id="rx_gain" placeholder='dB'>
+           </div>
+           <div class="form-group">
+             <label for="rate">Sampling rate:</label>
+             <input type="text" class="form-control" id="rate" placeholder='[MHz]'>
+           </div>
+           <div class="form-group">
+             <label for="decim">Decimation:</label>
+             <input type="text" class="form-control" id="decim" placeholder='#'>
+           </div>
+           <div class="form-group">
+             <label for="amp">Per-tone amplitude compensation:</label>
+             <input type="text" class="form-control" id="amp" placeholder='N tones'>
+           </div>
+         </div>
+
+        </form>
+      </div>
+      <div class="column" id = "vna_plot" style = " float: left; width:73%; ">
+        {{script|safe}}
+      </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="connection-modal-alert" role="dialog">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Cannot start measure</h4>
+      </div>
+      <div class="modal-body">
+        <p>The GPU server is not connected. Check in the <a href="{{ url_for('connections') }}">Connections</a> tab.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="text/javascript" src={{ url_for('static', filename = 'js/vna.js') }}></script>
+
+
+{% endblock %}
