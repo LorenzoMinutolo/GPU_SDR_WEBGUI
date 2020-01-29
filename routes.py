@@ -1,8 +1,8 @@
-from flask import render_template,flash, redirect,url_for,render_template_string
+from flask import render_template,flash, redirect,url_for,render_template_string,send_from_directory
 from app import app,db,job_manager
 from forms import LoginForm, JustAPlaceholder, SearchForm,RegistrationForm
 from flask_login import current_user, login_user
-from models import User
+from models import User, Plot, get_associated_plots
 from flask_login import login_required
 from flask import request, jsonify
 from werkzeug.urls import url_parse
@@ -199,74 +199,86 @@ def explore_all():
     paths, files, sizes, kinds = scanfiles(current_path)
     return render_template('explore_all.html', title='Explore_all', allfiles = list(zip(files, paths, sizes, kinds)), current_meas_path = current_path)
 
-
-
 @app.route('/explore', methods=['GET', 'POST'])
 @app.route('/explore/<path:path>', methods=['GET', 'POST'])
 @login_required
 def explore(path = ""):
-    current_path = app.config['GLOBAL_MEASURES_PATH'] + path
-    folder_to_scan = []
+    current_path = os.path.join(app.config['GLOBAL_MEASURES_PATH'], path)
+
     request_error = {'enable':False, 'message':None}
-    if request.method == 'POST':
-        if request.form.get('select_button') == 'Show files >>':
-            folder_to_scan = request.form.getlist('folders')
-        else:
-            file_list = request.form.getlist('files_selected')
-            if len(file_list)>0:
-                print("Working on files: "+str(file_list))
-                if request.form.get('plot_button') == 'Plot':
-                    request_error['enable'] = True
-                    request_error['message'] = str(file_list)
-                if request.form.get('analyze_button') == 'Analyze':
-                    request_error['enable'] = True
-                    request_error['message'] = "Analysis not developed"
-                if request.form.get('export_button') == 'Export':
-                    request_error['enable'] = True
-                    request_error['message'] = "Export not developed"
-                if request.form.get('export_source') == 'Use as source':
-                    request_error['enable'] = True
-                    request_error['message'] = "Source not developed"
-            else:
-                request_error['enable'] = True
-                request_error['message'] = "No File selected"
-
-    elif request.method == 'GET':
-        pass
-
-    #do not change directory, this is a limitation
-    folder_names,h5num = scanfolders(current_path)
-
-    if len(folder_to_scan) == 0:
-        paths, files, sizes, kinds = scanfiles(current_path)
+    if path.endswith(".png"):
+        print('file requested: %s'%path)
+        return send_from_directory(directory=os.path.dirname(current_path), filename=os.path.basename(path))
+    elif path.endswith(".html"):
+        print('file requested: %s'%path)
+        return send_from_directory(directory=os.path.dirname(current_path), filename=os.path.basename(path))
     else:
-        paths = []
-        files = []
-        sizes =[]
-        kinds = []
+        folder_to_scan = []
+        if request.method == 'POST':
+            if request.form.get('select_button') == 'Show files >>':
+                folder_to_scan = request.form.getlist('folders')
+            else:
+                file_list = request.form.getlist('files_selected')
+                if len(file_list)>0:
+                    print("Working on files: "+str(file_list))
+                    if request.form.get('plot_button') == 'Plot':
+                        request_error['enable'] = True
+                        request_error['message'] = str(file_list)
+                    if request.form.get('analyze_button') == 'Analyze':
+                        request_error['enable'] = True
+                        request_error['message'] = "Analysis not developed"
+                    if request.form.get('export_button') == 'Export':
+                        request_error['enable'] = True
+                        request_error['message'] = "Export not developed"
+                    if request.form.get('export_source') == 'Use as source':
+                        request_error['enable'] = True
+                        request_error['message'] = "Source not developed"
+                else:
+                    request_error['enable'] = True
+                    request_error['message'] = "No File selected"
 
-        for ff in folder_to_scan:
-            paths_, files_, sizes_, kinds_ = scanfiles(current_path+ff+"/")
-            paths.extend(paths_)
-            files.extend(files_)
-            sizes.extend(sizes_)
-            kinds.extend(kinds_)
+        elif request.method == 'GET':
+            pass
 
-    f_checked = []
-    for i in range(len(folder_names)):
-        if folder_names[i] in folder_to_scan:
-            f_checked.append( True)
+        #do not change directory, this is a limitation
+        folder_names, h5num = scanfolders(current_path)
+
+        if len(folder_to_scan) == 0:
+            paths, files, sizes, kinds = scanfiles(current_path)
         else:
-            f_checked.append(False)
-    return render_template('explore.html', title='Explore',
-        allfiles = list(zip(files, paths, sizes, kinds)),
-        allfolders = list(zip(folder_names, h5num, f_checked)),
-        err = request_error,
-        current_path = url_for("explore")+"/"+path,
-        visual_path = path.split("/")[:-1]
-        )
+            paths = []
+            files = []
+            sizes =[]
+            kinds = []
+
+            for ff in folder_to_scan:
+                paths_, files_, sizes_, kinds_ = scanfiles(current_path+ff+"/")
+                paths.extend(paths_)
+                files.extend(files_)
+                sizes.extend(sizes_)
+                kinds.extend(kinds_)
+
+        f_checked = []
+        for i in range(len(folder_names)):
+            if folder_names[i] in folder_to_scan:
+                f_checked.append( True)
+            else:
+                f_checked.append(False)
 
 
+        full_paths_list = [os.path.join(path,x) for x in files]
+        measure_link = get_associated_plots(full_paths_list)
+        #print(measure_link)
+        return render_template('explore.html', title='Explore',
+            allfiles = list(zip(files, paths, sizes, kinds)),
+            measure_link = measure_link,
+            allfolders = list(zip(folder_names, h5num, f_checked)),
+            err = request_error,
+            current_path = url_for("explore")+"/"+path,
+            visual_path = path.split("/")[:-1]
+            )
+#style="width: auto !important; display: inline-block; max-width: 100%;"
+#style="display: flex !important; justify-content: center; align-items: center;"
 @login_required
 @app.route('/show_plot', methods=['GET', 'POST'])
 def show_plot():

@@ -62,9 +62,7 @@ def handle_vna_param(msg, methods=['GET', 'POST']):
                 'Iterations':iterations,
                 'verbose':False
             }
-            # job_manager.submit_job(u.Single_VNA, arguments = args, name = 'vna', depends = None)
-            # sadly does not work because of the context independant nature of Redis. Bonus: theoretically
-            # Redis can be programmed to execute function on a remote server and return the result locally
+
             measure_manager.enqueue_measure(
                 target = u.Single_VNA,
                 args = args,

@@ -1,5 +1,6 @@
+import re
 from datetime import datetime
-from app import app,db
+from app import app,db,u
 from sqlalchemy.orm.exc import NoResultFound, StaleDataError, MultipleResultsFound
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -53,6 +54,8 @@ class Measure(db.Model):
         '''
         paths = []
         kinds = []
+        timestamp = []
+        comment = []
         for p in self.plot:
             paths.append(
                 p.relative_path
@@ -60,7 +63,14 @@ class Measure(db.Model):
             kinds.append(
                 p.kind
             )
-        return paths, kinds
+            timestamp.append(
+                str(p.timestamp)
+            )
+            comment.append(
+                p.comment
+            )
+        return paths, kinds, timestamp, comment
+
     def __repr__(self):
         return '<Measure {}>'.format(self.id)
 
@@ -75,18 +85,20 @@ def get_associated_plots(path_list):
     }
     for single_measure_path in path_list:
         current_plots = {
-            'path':[],
-            'kind':[]
         }
         try:
             measure = Measure.query.filter(Measure.relative_path == single_measure_path).one()
-            current_plots['path'],current_plots['kind'] = measure.get_plots()
+            current_plots['path'],current_plots['kind'], current_plots['timestamp'], current_plots['comment'] = measure.get_plots()
             err = False
         except NoResultFound:
+            current_plots['path'] = []
+            current_plots['kind'] = []
+            current_plots['timestamp'] = []
+            current_plots['comment'] = []
             err = True
 
         ret['plots'].append(current_plots)
-        ret['plots'].append(current_plots)
+        ret['err'].append(err)
 
     return ret
 
@@ -138,7 +150,7 @@ class Plot(db.Model):
                 )
 
             except NoResultFound:
-                print_warning("No result found while associating %s with a plot"% single_measure_path)
+                print_warning("No result found while associating %s with a measure db entry"% single_measure_path)
 
         db.session.commit()
 
@@ -207,7 +219,6 @@ def remove_measure_entry(rel_path):
         print_warning("Cannot find %s measure entry in the database")
         return False
 
-
 def remove_plot_entry(rel_path):
     '''
     Remove a Plot entry from the database.
@@ -258,14 +269,189 @@ def check_all_plots():
                 print_error("Something went wrong in database logic")
 
 
+def patch_measure_from_path(rel_path, verbose = True):
+    '''
+    Given a measure not in the database try to find an item with the same filename and correct the relative path attribute; if no item is found, add a new item to the database.
+    Return True if the match is succesfull, False if a new entry is created.
+    '''
+    if verbose: print("Trying to match %s file with the database..."%os.path.basename(rel_path))
+    try:
+        x = Measure.query.filter(Measure.relative_path.like("%"+os.path.basename(rel_path) + "%")).one()
+        x.relative_path = rel_path
+        ret = True
+        db.session.commit()
+    except NoResultFound:
+        if verbose: print("No result found, creating new entry...")
+        add_measure_entry(
+            rel_path,
+            datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+            kind = u.get_meas_type(os.path.relpath(app.config["GLOBAL_MEASURES_PATH"] + rel_path, os.getcwd()))[0],
+            comment = "From auto patch",
+            commit = True
+        )
+        ret = False
+
+    return ret
+
+def filename_from_plot_name(full_path):
+    '''
+    Recover the measure filename from a plot file. Requires the plot file to be named programmatically.
+    '''
+
+    # Because regular expression are cool
+    tag = re.findall("\d{8}_\d{6}",os.path.basename(full_path))
+    if tag:
+        tag = tag[0]
+    else:
+        return ''
+    try:
+        x = Measure.query.filter(Measure.relative_path.like("%"+tag+"%")).one()
+        return x.relative_path
+    except NoResultFound:
+        print_warning("Cannot return filename from plot tag \'%s\', skipping"%tag)
+        return ''
+
+
+
+def patch_plot_from_path(rel_path, verbose = True):
+    '''
+    Given a plot not in the database try to find an item with the same filename and correct the relative path attribute; if no item is found, add a new item to the database.
+    Return True if the match is succesfull, False if a new entry is created.
+    '''
+    if verbose: print("Trying to match %s file with the database..."%os.path.basename(rel_path))
+    try:
+        x = Plot.query.filter(Plot.relative_path.like("%"+os.path.basename(rel_path) + "%")).one()
+        x.relative_path = rel_path
+        ret = True
+        db.session.commit()
+    except NoResultFound:
+        #determine kind
+        if os.path.basename(rel_path).find("Compare") >= 0:
+            kind = 'multi'
+        elif os.path.basename(rel_path).find("comapre") >= 0:
+            kind = 'multi'
+        else:
+            kind = 'single'
+
+        #determine backend
+        if os.path.basename(rel_path).endswith('.png'):
+            backend = 'matplotlib'
+        elif os.path.basename(rel_path).endswith('.html'):
+            backend = 'plotly'
+        else:
+            backend = 'unknown'
+
+        #determine file association
+        filename = filename_from_plot_name(rel_path)
+
+        if len(filename) < 15:
+            ret = False
+        else:
+            if verbose: print("No result found, creating new entry...")
+            add_plot_entry(
+                relative_path = rel_path,
+                kind = kind,
+                backend = backend,
+                sources = filename,
+                comment = "From auto patch",
+                commit = True
+            )
+            ret = False
+
+    return ret
+
+def get_h5_files_from_root():
+    '''
+    Scan the root data folder and returns a list of relative paths for the measurements.
+    '''
+    ret = []
+    for root, dirs, files in os.walk(app.config["GLOBAL_MEASURES_PATH"], topdown=False):
+        for name in files:
+            if name.endswith('.h5'):
+                ret.append(os.path.join(os.path.relpath(root,app.config["GLOBAL_MEASURES_PATH"]), name))
+    return ret
+
+def get_plots_files_from_root():
+    '''
+    Scan the root data folder and returns a list of relative paths for the plots, and a list of for the backend.
+    '''
+    ret = []
+    backend = []
+    for root, dirs, files in os.walk(app.config["GLOBAL_MEASURES_PATH"], topdown=False):
+        for name in files:
+            if name.endswith('.png'):
+                ret.append(os.path.join(os.path.relpath(root,app.config["GLOBAL_MEASURES_PATH"]), name))
+                backend.append('matplotlib')
+            elif name.endswith('.html'):
+                ret.append(os.path.join(os.path.relpath(root,app.config["GLOBAL_MEASURES_PATH"]), name))
+                backend.append('plotly')
+
+    return ret, backend
+
+def patch_measure_from_db(rel_path_from_Measure):
+    '''
+    Given a faulty db measure item (file in relative path is not there), scan the measure folder and tries to find it and correct the relative path.
+    '''
+    all_paths = get_h5_files_from_root()
+    all_files = [os.path.basename(rel_path) for rel_path in all_paths]
+    try:
+        x = Measure.query.filter(Measure.relative_path == rel_path_from_Measure).one()
+        try:
+            target_path = all_files.index(os.path.basename(x.relative_path))
+            x.relative_path = all_paths[target_path]
+            db.session.commit()
+            return True
+        except ValueError:
+            print_warning("Cannot find db item %s in current file structure"%os.path.basename(x.relative_path))
+            return False
+    except MultipleResultsFound:
+        print_warning("Cannot patch the file %s as multiple result were found. Decoupling requires additional implementation."%os.path.basename(x.relative_path))
+        return False
+    except NoResultFound:
+        print_error("Cannot find the database item corresponding to path %s, cannot repair"%rel_path_from_Measure)
+        return False
+
+def patch_plot_from_db(rel_path_from_Plot):
+    '''
+    Given a faulty db plot item (file in relative path is not there), scan the measure folder and tries to find it and correct the relative path.
+    '''
+    all_paths, backends = get_plots_files_from_root()
+    all_files = [os.path.basename(rel_path) for rel_path in all_paths]
+    try:
+        x = Plot.query.filter(Plot.relative_path == rel_path_from_Plot).one()
+        try:
+            target_path = all_files.index(os.path.basename(x.relative_path))
+            x.relative_path = all_paths[target_path]
+            db.session.commit()
+            return True
+        except ValueError:
+            print_warning("Cannot find db item %s in current file structure"%os.path.basename(x.relative_path))
+            return False
+    except MultipleResultsFound:
+        print_warning("Cannot patch the file %s as multiple result were found. Decoupling requires additional implementation."%os.path.basename(x.relative_path))
+        return False
+    except NoResultFound:
+        print_error("Cannot find the database item corresponding to path %s, cannot repair"%rel_path_from_Plot)
+        return False
+
 def rebuild_measure_database():
     '''
     Analyze the current measure path and rebuild a database.
     '''
-    pass
+
+    h5files = get_h5_files_from_root()
+    for fp in h5files:
+        patch_measure_from_path(fp, verbose = True)
+
+
+
 
 def rebuild_plot_database():
     '''
     Try to rebuild the database of the plots. Compare plots are not accounted.
     This function is based on nomenclature and require the plots to not have custom names and the measure database to be compiled.
     '''
+
+    plots, kinds = get_plots_files_from_root()
+    for fp in plots:
+        patch_plot_from_path(fp, verbose = True)

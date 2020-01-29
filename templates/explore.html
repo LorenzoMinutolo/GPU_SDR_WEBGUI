@@ -14,7 +14,7 @@ alert("{{err['message']}}");
 <script type="text/javascript" src={{ url_for('static', filename = 'js/explore.js') }}></script>
 
 <!-- This whole page is structured as a single form. Horrible but I cannot use the flask.form.request() method on a specific form name-->
-<form method="post" >
+
 <!-- Head buttons -->
 <div class="row" style="margin: 0px; padding-top: 0px; padding-right: 10px; padding-left: 10px;">
   <div>
@@ -76,8 +76,9 @@ alert("{{err['message']}}");
         <table id="files" class="table" style="width:95%">
             <thead>
                 <tr>
+                    <th>DB</th>
+                    <th>Plot</th>
                     <th>Name</th>
-                    <th>Parent</th>
                     <th>Size</th>
                     <th>Kind</th>
                     <th>Select</th>
@@ -85,14 +86,27 @@ alert("{{err['message']}}");
             </thead>
 
             <tbody>
-                {% for file_db in allfiles: %}
+                {% for i in range(allfiles|length): %}
                 <tr>
-                    <td>{{ file_db[0] }}</td>
-                    <td>{{ file_db[1] }}</td>
-                    <td>{{ file_db[2] }}</td>
-                    <td>{{ file_db[3] }}</td>
                     <td>
-                            <input type="checkbox" name = "files_selected" value={{ (file_db[0]) }}>
+                      {% if measure_link['err'][i] %}
+                        <span class="glyphicon glyphicon-remove"></span>
+                      {% else %}
+                        <span class="glyphicon glyphicon-ok"></span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if measure_link['plots'][i]['path']|length > 0 %}
+                      <button type="submit" class="btn btn-link glyphicon glyphicon-picture" style="margin:0px; padding:0px" id="show_plot_{{ allfiles[i][0] }}" data-toggle="modal" data-target="#modal_plot_select_{{i}}"></button>
+                      {% else %}
+                        <span class="glyphicon glyphicon-remove"></span>
+                      {% endif %}
+                    </td>
+                    <td>{{ allfiles[i][0] }}</td>
+                    <td>{{ allfiles[i][2] }}</td>
+                    <td>{{ allfiles[i][3] }}</td>
+                    <td>
+                            <input type="checkbox" name = "files_selected" value={{ allfiles[i][0] }}>
                     </td>
 
                 </tr>
@@ -103,6 +117,59 @@ alert("{{err['message']}}");
     </div>
 </div>
 <hr>
-</form>
 
+<style>
+  .modal-dialog {
+    width: auto;
+    max-width: 960px;
+  }
+</style>
+
+<!-- This is quite intricated: jinja2 templating engine is generating a modal form and its load script on a per file basis -->
+{% for i in range(allfiles|length): %}
+<!-- Modal -->
+<div class="modal fade" id="modal_plot_select_{{i}}" role="dialog">
+  <div class="modal-dialog" >
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header" style="padding:20px 20px;">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4><span class="glyphicon glyphicon-picture"></span> Available plots</h4>
+        List of the available plots for: <b>{{allfiles[i][0]}}</b><br>
+        <i> Kind field tells if the plot involves also other measures.</i>
+      </div>
+      <div class="modal-body" style="padding:40px 50px; ">
+        <table id="plot_select_table_{{i}}" class="table" style="width:95%">
+          <thead>
+            <tr>
+              <th>Plot</th>
+              <th>Kind</th>
+              <th>Generated</th>
+              <th>Comment</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for j in range(measure_link['plots'][i]['path']|length) %}
+            <tr>
+              <td><a href="{{ url_for('explore') }}/{{ measure_link['plots'][i]['path'][j] }}"  target=”_blank”>{{ measure_link['plots'][i]['path'][j].split('/')[-1] }}</a></td>
+              <td>{{ measure_link['plots'][i]['kind'][j] }}</td>
+              <td>{{ measure_link['plots'][i]['timestamp'][j].split('.')[0] }}</td>
+              <td>{{ measure_link['plots'][i]['comment'][j] }}</td>
+            </tr>
+            {% endfor%}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+( function($) {
+  $(document).ready(function() {
+    $('#plot_select_table_{{i}}').DataTable({select: true});
+  } );
+} ) ( jQuery );
+</script>
+{% endfor %}
 {% endblock %}
