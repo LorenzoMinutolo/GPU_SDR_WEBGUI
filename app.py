@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_bootstrap import Bootstrap
 from flask_login import current_user
+
 import json
 import os
 import time
@@ -57,13 +58,13 @@ class Config(object):
 app = Flask(__name__)
 app.secret_key =SECRET_KEY
 app.config.from_object(Config)
+app.config['SESSION_TYPE'] = 'filesystem'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login = LoginManager(app)
 login.login_view = 'login'
 bootstrap = Bootstrap(app)
 socketio = SocketIO(app)
-
 
 import jobs
 # Analysis job stack
@@ -100,8 +101,12 @@ from routes import *
 # This has to be imported last
 from handlers import *
 
+from models import clear_all_files_selected
+
 if __name__ == '__main__':
     #app.run(debug=True)
+
+    # Clear the session
 
     job_connected = job_manager.connect()
     if not job_connected:
@@ -133,5 +138,6 @@ if __name__ == '__main__':
         except OsError:
             print("Cannot create path.")
             exit()
+    clear_all_files_selected()
     print("Running application on addr: %s"%APP_ADDR)
     socketio.run(app,host= APP_ADDR)

@@ -6,6 +6,7 @@ var interval_update_measure = setInterval(request_measure_update, 731);
 var old_job_table = [{"":0}]
 var old_meas_table = [{"":0}]
 
+
 $(document).ready(function(){
     $("#submit_button_worker").click(function(){
     $("#modal_add_worker").modal();

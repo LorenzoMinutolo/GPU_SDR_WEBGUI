@@ -9,6 +9,10 @@ from flask_login import UserMixin
 from app import login
 from flask_login import current_user
 from diagnostic_text import *
+from multiprocessing import RLock, Manager
+
+commit_manager = Manager()
+commit_lock = RLock() # Recursive lock because db.session.commit() is a non-thread-safe operation
 
 class User(UserMixin,db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -107,6 +111,8 @@ def add_measure_entry(relative_path, started_time, kind = "Unknown", comment = "
     '''
     Register a measure in the database.
     '''
+    global commit_lock
+
     if current_user != None:
         author = current_user.username
     else:
@@ -120,7 +126,9 @@ def add_measure_entry(relative_path, started_time, kind = "Unknown", comment = "
     )
     db.session.add(m)
     if commit:
+        commit_lock.acquire()
         db.session.commit()
+        commit_lock.release()
     else:
         print_warning("Measure %s is waiting database commit"%relative_path)
 
@@ -136,6 +144,7 @@ class Plot(db.Model):
     measure = db.relationship('Measure', secondary="PlotVsMeasure", back_populates='plot')
 
     def associate_files(self, file_paths):
+        global commit_lock
         '''
         Associate the plot with multiple measures.
 
@@ -152,7 +161,9 @@ class Plot(db.Model):
             except NoResultFound:
                 print_warning("No result found while associating %s with a measure db entry"% single_measure_path)
 
+        commit_lock.acquire()
         db.session.commit()
+        commit_lock.release()
 
     def get_sources(self):
         '''
@@ -178,6 +189,7 @@ def add_plot_entry(relative_path, kind, backend, sources, comment = "", commit =
     Arguments:
         - sources is a list of file paths or a string with a single file path
     '''
+    global commit_lock
     if current_user != None:
         author = current_user.username
     else:
@@ -193,7 +205,9 @@ def add_plot_entry(relative_path, kind, backend, sources, comment = "", commit =
     db.session.add(p)
     p.associate_files(sources)
     if commit:
+        commit_lock.acquire()
         db.session.commit()
+        commit_lock.release()
     else:
         print_warning("plot %s is waiting for commit"%relative_path)
 
@@ -210,10 +224,14 @@ def remove_measure_entry(rel_path):
     '''
     Remove a Measure entry from the database.
     '''
+    global commit_lock
+
     try:
+        commit_lock.acquire()
         x = Measure.query.filter(Measure.relative_path == rel_path).one()
         db.session.delete(x)
         db.session.commit()
+        commit_lock.release()
         return True
     except NoResultFound:
         print_warning("Cannot find %s measure entry in the database")
@@ -223,9 +241,13 @@ def remove_plot_entry(rel_path):
     '''
     Remove a Plot entry from the database.
     '''
+    global commit_lock
+
     try:
+        commit_lock.acquire()
         db.session.delete(Plot.query.filter(Plot.relative_path == rel_path).one())
         db.session.commit()
+        commit_lock.release()
         return True
     except NoResultFound:
         print_warning("Cannot find %s measure entry in the database")
@@ -274,12 +296,16 @@ def patch_measure_from_path(rel_path, verbose = True):
     Given a measure not in the database try to find an item with the same filename and correct the relative path attribute; if no item is found, add a new item to the database.
     Return True if the match is succesfull, False if a new entry is created.
     '''
+    global commit_lock
+
     if verbose: print("Trying to match %s file with the database..."%os.path.basename(rel_path))
     try:
+        commit_lock.acquire()
         x = Measure.query.filter(Measure.relative_path.like("%"+os.path.basename(rel_path) + "%")).one()
         x.relative_path = rel_path
         ret = True
         db.session.commit()
+        commit_lock.release()
     except NoResultFound:
         if verbose: print("No result found, creating new entry...")
         add_measure_entry(
@@ -318,12 +344,16 @@ def patch_plot_from_path(rel_path, verbose = True):
     Given a plot not in the database try to find an item with the same filename and correct the relative path attribute; if no item is found, add a new item to the database.
     Return True if the match is succesfull, False if a new entry is created.
     '''
+    global commit_lock
+
     if verbose: print("Trying to match %s file with the database..."%os.path.basename(rel_path))
     try:
+        commit_lock.acquire()
         x = Plot.query.filter(Plot.relative_path.like("%"+os.path.basename(rel_path) + "%")).one()
         x.relative_path = rel_path
         ret = True
         db.session.commit()
+        commit_lock.release()
     except NoResultFound:
         #determine kind
         if os.path.basename(rel_path).find("Compare") >= 0:
@@ -392,14 +422,18 @@ def patch_measure_from_db(rel_path_from_Measure):
     '''
     Given a faulty db measure item (file in relative path is not there), scan the measure folder and tries to find it and correct the relative path.
     '''
+    global commit_lock
+
     all_paths = get_h5_files_from_root()
     all_files = [os.path.basename(rel_path) for rel_path in all_paths]
     try:
         x = Measure.query.filter(Measure.relative_path == rel_path_from_Measure).one()
         try:
+            commit_lock.acquire()
             target_path = all_files.index(os.path.basename(x.relative_path))
             x.relative_path = all_paths[target_path]
             db.session.commit()
+            commit_lock.release()
             return True
         except ValueError:
             print_warning("Cannot find db item %s in current file structure"%os.path.basename(x.relative_path))
@@ -415,14 +449,17 @@ def patch_plot_from_db(rel_path_from_Plot):
     '''
     Given a faulty db plot item (file in relative path is not there), scan the measure folder and tries to find it and correct the relative path.
     '''
+    global commit_lock
     all_paths, backends = get_plots_files_from_root()
     all_files = [os.path.basename(rel_path) for rel_path in all_paths]
     try:
         x = Plot.query.filter(Plot.relative_path == rel_path_from_Plot).one()
         try:
+            commit_lock.acquire()
             target_path = all_files.index(os.path.basename(x.relative_path))
             x.relative_path = all_paths[target_path]
             db.session.commit()
+            commit_lock.release()
             return True
         except ValueError:
             print_warning("Cannot find db item %s in current file structure"%os.path.basename(x.relative_path))
@@ -444,8 +481,6 @@ def rebuild_measure_database():
         patch_measure_from_path(fp, verbose = True)
 
 
-
-
 def rebuild_plot_database():
     '''
     Try to rebuild the database of the plots. Compare plots are not accounted.
@@ -455,3 +490,111 @@ def rebuild_plot_database():
     plots, kinds = get_plots_files_from_root()
     for fp in plots:
         patch_plot_from_path(fp, verbose = True)
+
+# Temporary file select, was too big for cookies.
+# This table is not associated with the database directly, I don't see the point at this stage
+class Tmp_files(db.Model):
+    __tablename__ = 'Tmp_files'
+    id = db.Column(db.Integer, primary_key=True)
+    measure = db.Column(db.String(140))
+    user = db.Column(db.String(140))
+    def __repr__(self):
+        return '<tmp_file {}>'.format(self.id)
+
+def add_file_selected(path):
+    '''
+    Add a file to temporary list
+    '''
+    global commit_lock
+    if current_user != None:
+        author = current_user.username
+    else:
+        author = "TestEnv"
+
+    try:
+        Tmp_files.query.filter(Tmp_files.measure==path).filter(Tmp_files.user==author).one()
+    except NoResultFound:
+        m = Tmp_files(measure = path, user = author)
+
+        commit_lock.acquire()
+        db.session.add(m)
+        db.session.commit()
+        commit_lock.release()
+        return True
+    else:
+        print_warning("Cannot add %s, on tmp files of user %s. Already present"%(path,author))
+        return False
+
+def remove_file_selected(path):
+    '''
+    Remove selected file
+    '''
+    global commit_lock
+
+    try:
+        x = Tmp_files.query.filter(Tmp_files.measure==path).one()
+    except NoResultFound:
+        print_warning("Cannot remove temporary measure as it's not there")
+    except MultipleResultsFound:
+        print_warning("Cannot remove temporary measure as there are multiple with the same path")
+    else:
+        commit_lock.acquire()
+        db.session.delete(x)
+        db.session.commit()
+        commit_lock.release()
+        return True
+    return False
+
+def clear_all_files_selected():
+    '''
+    Clear the selection table
+    '''
+    global commit_lock
+    print("Clearing all temporary file selection...")
+    list_x = Tmp_files.query.all()
+
+    commit_lock.acquire()
+    for x in list_x:
+        db.session.delete(x)
+
+    db.session.commit()
+    commit_lock.release()
+
+def clear_user_file_selected():
+    '''
+    Clear the file selected for a single user
+    '''
+    global commit_lock
+
+    if current_user != None:
+        author = current_user.username
+    else:
+        author = "TestEnv"
+    print("Clearing all temporary file selection dor use %s..."%author)
+    list_x = Tmp_files.query.filter(Tmp_files.user==author).all()
+
+    commit_lock.acquire()
+    for x in list_x:
+        db.session.delete(x)
+
+    db.session.commit()
+    commit_lock.release()
+
+def user_files_selected():
+    '''
+    Return a list of strings with the filename selected
+    '''
+    global commit_lock
+    if current_user != None:
+        author = current_user.username
+    else:
+        author = "TestEnv"
+    commit_lock.acquire()
+    list_x = Tmp_files.query.filter(Tmp_files.user==author).all()
+    commit_lock.release()
+    ret = []
+    for x in list_x:
+        ret.append(
+            x.measure
+        )
+    return ret

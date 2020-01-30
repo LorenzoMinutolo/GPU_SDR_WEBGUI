@@ -12,7 +12,7 @@ import glob,os
 import json
 from flask import g
 import ntpath
-
+from models import user_files_selected
 from app import u, check_connection
 
 
@@ -112,7 +112,7 @@ def user(username):
 
 @login_required
 @app.route('/session', methods=['GET', 'POST'])
-def session():
+def x_session():
     form = JustAPlaceholder()
     if form.validate_on_submit():
         session = Session(body=form.session.data, author=current_user)
@@ -199,12 +199,14 @@ def explore_all():
     paths, files, sizes, kinds = scanfiles(current_path)
     return render_template('explore_all.html', title='Explore_all', allfiles = list(zip(files, paths, sizes, kinds)), current_meas_path = current_path)
 
+
 @app.route('/explore', methods=['GET', 'POST'])
 @app.route('/explore/<path:path>', methods=['GET', 'POST'])
 @login_required
 def explore(path = ""):
+    #current_session.clear()
+    #current_session['selected_paths'] = [1,2,3]
     current_path = os.path.join(app.config['GLOBAL_MEASURES_PATH'], path)
-
     request_error = {'enable':False, 'message':None}
     if path.endswith(".png"):
         print('file requested: %s'%path)
@@ -275,7 +277,8 @@ def explore(path = ""):
             allfolders = list(zip(folder_names, h5num, f_checked)),
             err = request_error,
             current_path = url_for("explore")+"/"+path,
-            visual_path = path.split("/")[:-1]
+            visual_path = path.split("/")[:-1],
+            selected_files = user_files_selected()
             )
 #style="width: auto !important; display: inline-block; max-width: 100%;"
 #style="display: flex !important; justify-content: center; align-items: center;"
