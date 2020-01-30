@@ -2,21 +2,13 @@
 
 {% block content %}
 
-
-
-{% if err['enable']: %}
-
+<!-- Needed for jinja interaction-->
 <script>
-  alert("{{err['message']}}");
+  var currenpath = "{{simple_path }}"
 </script>
-{% endif %}
 
 <script type="text/javascript" src={{ url_for('static', filename = 'js/explore.js') }}></script>
 <!-- This whole page is structured as a single form. Horrible but I cannot use the flask.form.request() method on a specific form name-->
-
-
-
-
 
 <div class="panel panel-default w-100 padding-right: 10px; padding-left: 10px;">
   <div class="panel-heading">
@@ -32,26 +24,18 @@
         {% endfor %}
       </h3>
     </div>
-
-
   </div>
-
   <div class="panel-body">
-
-
     <div style="width: 100%; display: table;">
       <div style="display: table-row">
         <input type="submit" name="plot_button" value="Plot" style = "margin-left: 10px; margin-bottom: 10px;">
-        <input type="submit" name="analyze_button" value="Analyze" style = "margin-left: 10px; margin-bottom: 10px;">
+        <input type="submit" name="analyze_button" value="Analyze" style = "margin-left: 10px; margin-bottom: 10px;" onclick="configure_analyze_modal()">
         <input type="submit" name="export_button" value="Export" style = "margin-left: 10px; margin-bottom: 10px;">
         <input type="submit" name="export_source" value="Use as source" style = "margin-left: 10px; margin-bottom: 10px;">
         <input type="submit" name="clear_selected" value="Clear selected" onclick="clear_selected()" style = "margin-left: 10px; margin-bottom: 10px;">
       </div>
-
       <div style="display: table-row" >
         <div style="width: 30%; display: table-cell; padding:10px; background-color:#f8f9fa;">
-
-
           <!-- Folders table -->
           <table id="folders" class="table" style="width:95%;">
             <caption style = "margin: 0px; padding: 0px; text-align: center; font-size: 120%;">
@@ -65,25 +49,17 @@
                     <th>Select</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {% for folder in allfolders: %}
                   <tr>
                     <td><a href="{{ current_path }}{{ folder[0] }}/">{{ folder[0] }}</a></td>
                     <td>{{ folder[1] }}</td>
-                    {% if folder[2]: %}
-                    <td><input type="checkbox" name ="folders" value= {{ (folder[0]) }} checked="checked"></td>
-                    {% else: %}
-                    <td><input type="checkbox" name ="folders" value= {{ (folder[0]) }} ></td>
-                    {% endif %}
+                    <td><button name ="folders" value= "{{ (folder[0]) }}" onclick = "add_folder_op(this)" style="margin:0px">All</button></td>
                   </tr>
                   {% endfor %}
-
                 </tbody>
-
               </table>
             </div>
-
             <div style="width: 70%; display: table-cell; padding:10px;">
               <!-- Files table -->
               <table id="files" class="table" style="width:95%;">
@@ -100,7 +76,6 @@
                         <th>Select</th>
                       </tr>
                     </thead>
-
                     <tbody>
                       {% for i in range(allfiles|length): %}
                       <tr>
@@ -124,102 +99,125 @@
                         <td>
                           <input type="checkbox" name = "files_selected" value="{{ allfiles[i][0] }}" onclick="selected_file_op(this)" {% if allfiles[i][0] in selected_files %}checked{%endif%}>
                         </td>
-
                       </tr>
                       {% endfor %}
                     </tbody>
-
                   </table>
                 </div>
-
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-
-
-<div>
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th scope="col">#</th>
-        <th>File selected</th>
-      </tr>
-    </thead>
-
-    <tbody id="selected_files_list"></tbody>
-
-    </table>
-
-<div>
-
-        <style>
-          .modal-dialog {
-            width: auto;
-            max-width: 960px;
-          }
-        </style>
-
-        <!-- This is quite intricated: jinja2 templating engine is generating a modal form and its load script on a per file basis -->
-        {% for i in range(allfiles|length): %}
-        <!-- Modal -->
-        <div class="modal fade" id="modal_plot_select_{{i}}" role="dialog">
-          <div class="modal-dialog" >
-            <!-- Modal content-->
-            <div class="modal-content">
-              <div class="modal-header" style="padding:20px 20px;">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4><span class="glyphicon glyphicon-picture"></span> Available plots</h4>
-                List of the available plots for: <b>{{allfiles[i][0]}}</b><br>
-                <i> Kind field tells if the plot involves also other measures.</i>
-              </div>
-              <div class="modal-body" style="padding:40px 50px; ">
-                <table id="plot_select_table_{{i}}" class="table" style="width:95%">
-                  <thead>
-                    <tr>
-                      <th>Plot</th>
-                      <th>Kind</th>
-                      <th>Generated</th>
-                      <th>Comment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for j in range(measure_link['plots'][i]['path']|length) %}
-                    <tr>
-                      <td><a href="{{ url_for('explore') }}/{{ measure_link['plots'][i]['path'][j] }}"  target=”_blank”>{{ measure_link['plots'][i]['path'][j].split('/')[-1] }}</a></td>
-                      <td>{{ measure_link['plots'][i]['kind'][j] }}</td>
-                      <td>{{ measure_link['plots'][i]['timestamp'][j].split('.')[0] }}</td>
-                      <td>{{ measure_link['plots'][i]['comment'][j] }}</td>
-                    </tr>
-                    {% endfor%}
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>
         </div>
 
-        <script>
-          ( function($) {
-            $(document).ready(function() {
-              $('#plot_select_table_{{i}}').DataTable({select: true});
-            } );
-          } ) ( jQuery );
-        </script>
-        {% endfor %}
-        <script>
-        ( function($) {
-          $(document).ready(function() {
-            $('#files').DataTable({select: true});
-          } );
-        } ) ( jQuery );
 
-        ( function($) {
-          $(document).ready(function() {
-            $('#folders').DataTable({select: true});
-          } );
-        } ) ( jQuery );
-        </script>
-        {% endblock %}
+        <div>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th>File selected</th>
+              </tr>
+            </thead>
+
+            <tbody id="selected_files_list"></tbody>
+
+          </table>
+
+          <div>
+
+
+<!-- PLOT DISPLAY PART -->
+
+<!-- This is quite intricated: the jinja2 templating engine is generating a modal form and its load script on a per file basis -->
+{% for i in range(allfiles|length): %}
+<!-- Modal -->
+<div class="modal fade" id="modal_plot_select_{{i}}" role="dialog">
+  <div class="modal-dialog" style = "width: auto; max-width: 960px;">
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header" style="padding:20px 20px;">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4><span class="glyphicon glyphicon-picture"></span> Available plots</h4>
+        List of the available plots for: <b>{{allfiles[i][0]}}</b><br>
+        <i> Kind field tells if the plot involves also other measures.</i>
+      </div>
+      <div class="modal-body" style="padding:40px 50px; ">
+        <table id="plot_select_table_{{i}}" class="table" style="width:95%">
+          <thead>
+            <tr>
+              <th>Plot</th>
+              <th>Kind</th>
+              <th>Generated</th>
+              <th>Comment</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for j in range(measure_link['plots'][i]['path']|length) %}
+            <tr>
+              <td><a href="{{ url_for('explore') }}/{{ measure_link['plots'][i]['path'][j] }}"  target=”_blank”>{{ measure_link['plots'][i]['path'][j].split('/')[-1] }}</a></td>
+              <td>{{ measure_link['plots'][i]['kind'][j] }}</td>
+              <td>{{ measure_link['plots'][i]['timestamp'][j].split('.')[0] }}</td>
+              <td>{{ measure_link['plots'][i]['comment'][j] }}</td>
+            </tr>
+            {% endfor%}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  ( function($) {
+    $(document).ready(function() {
+      $('#plot_select_table_{{i}}').DataTable({select: true});
+    } );
+  } ) ( jQuery );
+</script>
+{% endfor %}
+<script>
+  ( function($) {
+    $(document).ready(function() {
+      $('#files').DataTable({select: true});
+    } );
+  } ) ( jQuery );
+
+  ( function($) {
+    $(document).ready(function() {
+      $('#folders').DataTable({select: true});
+    } );
+  } ) ( jQuery );
+</script>
+
+<!-- ANALYSIS PART -->
+
+<!-- Modal -->
+<div class="modal fade" id="analysis-modal" role="dialog">
+  <div class="modal-dialog" >
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header" style="padding:20px 20px;">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4><span class="glyphicon glyphicon-picture"></span> Available plots</h4>
+        List of the measures swlwcted
+      </div>
+      <div class="modal-body" style="padding:40px 50px;" id = "analysis-modal-configure">
+        test
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success btn-default" onclick="add_worker()"><span class="glyphicon glyphicon-off"></span> Run</button>
+        <button type="submit" class="btn btn-danger btn-default" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style = "display:none" id = "noise-analysis">
+  This is the noise analysis
+</div>
+
+<div style = "display:none" id = "vna-analysis">
+  This is the noise analysis
+</div>
+
+{% endblock %}

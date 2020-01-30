@@ -35,8 +35,30 @@ function selected_file_op(chk){
     });
   }
 }
+
+function add_folder_op(chk){
+  console.log("Operating on selection from folder...");
+  console.log(chk.value);
+  console.log(currenpath);
+  socket.emit('add_to_selection_from_folder', {
+    folder:chk.value,
+    path:currenpath
+  });
+}
 function clear_selected(){
   console.log("Clearing selected files");
   socket.emit('explore_clear_selection', {});
   location.reload();
+}
+
+socket.on( 'analyze_config_modal', function( msg ) {
+  //apply the configuration
+
+  //finally activate the modal
+  $('#analysis-modal').modal('show');
+})
+
+function configure_analyze_modal() {
+  //request configuration of the modal
+  socket.emit('analysis_modal;_config', {});
 }

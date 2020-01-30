@@ -9,6 +9,7 @@ from werkzeug.urls import url_parse
 from flask_login import logout_user
 from datetime import datetime
 import glob,os
+from pathlib import Path
 import json
 from flask import g
 import ntpath
@@ -142,7 +143,9 @@ def what_size(filename):
         return "%.1f MB"%(filesize_MB)
 
 def scanfiles(current_path):
-    global path
+    '''
+    This function has to be modified, is quite messy due to multiple iterations
+    '''
     files = []
     sizes = []
     for file in glob.glob(current_path+"*.h5"):
@@ -166,7 +169,9 @@ def scanfolders(path):
     h5num = []
 
     for folder_name in folder_names:
-        h5num.append(len(scanfiles(path+folder_name+"/")[0]))
+        #h5num.append(len(scanfiles(path+folder_name+"/")[0]))
+        h5num.append(len([files_h5 for root_, dirs_, files_ in os.walk(path+folder_name) for files_h5 in files_ if files_h5.endswith(".h5")]))
+        #h5num.append( sum([len(files) for r, d, files in os.walk(path+folder_name)]))
     if isinstance(folder_names, str):
         folder_names = [folder_names]
     return folder_names,h5num
@@ -278,6 +283,7 @@ def explore(path = ""):
             err = request_error,
             current_path = url_for("explore")+"/"+path,
             visual_path = path.split("/")[:-1],
+            simple_path = path,
             selected_files = user_files_selected()
             )
 #style="width: auto !important; display: inline-block; max-width: 100%;"
