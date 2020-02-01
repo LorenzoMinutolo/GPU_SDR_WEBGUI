@@ -37,7 +37,7 @@
       <div style="display: table-row" >
         <div style="width: 30%; display: table-cell; padding:10px; background-color:#f8f9fa;">
           <!-- Folders table -->
-          <table id="folders" class="table" style="width:95%;">
+          <table id="folders" class="table" style="width:95%; vertical-align: top;">
             <caption style = "margin: 0px; padding: 0px; text-align: center; font-size: 120%;">
               Click on a folder to dispay file content
               <caption>
@@ -62,7 +62,7 @@
             </div>
             <div style="width: 70%; display: table-cell; padding:10px;">
               <!-- Files table -->
-              <table id="files" class="table" style="width:95%;">
+              <table id="files" class="table" style="width:95%; vertical-align: top;">
                 <caption style = "margin: 0px; padding: 0px; text-align: center; font-size: 120%;">
                   File present in the current path
                   <caption>
@@ -193,31 +193,493 @@
 
 <!-- Modal -->
 <div class="modal fade" id="analysis-modal" role="dialog">
-  <div class="modal-dialog" >
+  <div class="modal-dialog" style = "width: auto; max-width: 960px;">
     <!-- Modal content-->
     <div class="modal-content">
       <div class="modal-header" style="padding:20px 20px;">
         <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4><span class="glyphicon glyphicon-picture"></span> Available plots</h4>
-        List of the measures swlwcted
+        <h4><span class="glyphicon glyphicon-stats"></span> Available analysis</h4>
+        Select which analysis to perform and related options. Click analysis name item to expand the options.
       </div>
       <div class="modal-body" style="padding:40px 50px;" id = "analysis-modal-configure">
-        test
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = delay-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-delay" style = "margin-left:10px"><b>Delay</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Use a delay file to generate a delay constant and write it on file"></a>
+              <span id = "delay-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-delay" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "delay-analysis-body" style = "margin:10px">
+              Delay analysis does not have any oprion at the moment.
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'delay-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-delay-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-delay-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-delay-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'delay-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = vna_simple-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-vna_simple" style = "margin-left:10px"><b>VNA analysis</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Analyze the raw data from a VNA file generating the complex S21 information inside the file"></a>
+              <span id = "vna_simple-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-vna_simple" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "vna_simple-analysis-body" style = "margin:10px">
+              VNA analysis has no options at the moment.
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'vna_simple-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-vna_simple-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-vna_simple-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-vna_simple-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'vna_simple-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = vna_dynamic-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-vna_dynamic" style = "margin-left:10px"><b>Dynamic VNA analysis</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Interpret each iterations of a VNA measure as a time frame, analyze each frame and saves the data on the file."></a>
+              <span id = "vna_dynamic-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-vna_dynamic" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "vna_dynamic-analysis-body" style = "margin:10px">
+              Dynamic VNA analysis has no options at the moment.
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'vna_dynamic-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-vna_dynamic-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-vna_dynamic-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-vna_dynamic-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'vna_dynamic-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = fitting-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-fitting" style = "margin-left:10px"><b>Fitting</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Look for resonators and fit the S21 model. If the VNA file has not been analyzed, it will be processed with default options unless specified in this form. Store the results in the file."></a>
+              <span id = "fitting-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-fitting" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "fitting-analysis-body" style = "margin:10px">
+              Fitting options
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'fitting-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-fitting-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-fitting-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-fitting-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'fitting-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = psd-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-psd" style = "margin-left:10px"><b>Power spectrum</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Calculate the power spectrum of a noise file. Store the result in the file."></a>
+              <span id = "psd-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-psd" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "psd-analysis-body" style = "margin:10px">
+              psd options
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'psd-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-psd-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-psd-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-psd-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'psd-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = qf-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-qf" style = "margin-left:10px"><b>Frequency/Q timestreams</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Calculate the frequency and quality factor timestream using embedded S21 fitting data and the noise I/Q timestream"></a>
+              <span id = "qf-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-qf" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "qf-analysis-body" style = "margin:10px">
+              F/Q options
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'qf-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-qf-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-qf-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-qf-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'qf-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = qf_psd-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-qf_psd" style = "margin-left:10px"><b>Frequency/Q power spectrum</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Calculate the frequency and quality factor power spectrum using embedded S21 fitting data and the noise I/Q timestream. Store the results on file."></a>
+              <span id = "qf_psd-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-qf_psd" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "qf_psd-analysis-body" style = "margin:10px">
+              F/Q spec options
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'qf_psd-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-qf_psd-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-qf_psd-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-qf_psd-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'qf_psd-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = calibrated_psd-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-calibrated_psd" style = "margin-left:10px"><b>Calibrated power spectrum</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Calculate the power spectrum using the Q/F noise data and the embedded calibration constant. Store the results on file."></a>
+              <span id = "calibrated_psd-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-calibrated_psd" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "calibrated_psd-analysis-body" style = "margin:10px">
+              Calibrated spec options
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'calibrated_psd-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-calibrated_psd-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-calibrated_psd-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-calibrated_psd-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'calibrated_psd-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = pair_subtraction-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-pair_subtraction" style = "margin-left:10px"><b>Pair differencing</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Calculate the differential power spectrum using the calibrated noise data and the embedded pair information. Store the results on file."></a>
+              <span id = "pair_subtraction-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-pair_subtraction" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "pair_subtraction-analysis-body" style = "margin:10px">
+              Pair options
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'pair_subtraction-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-pair_subtraction-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-pair_subtraction-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-pair_subtraction-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'pair_subtraction-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
+        <!-- Analysis panel -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <input type="checkbox" id = calibration-analysis-chk>
+              <a class="toggle" data-toggle="collapse" href="#collapse-calibration" style = "margin-left:10px"><b>Calibration</b></a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Use a noise file to generate a calibration constant and write it on file"></a>
+              <span id = "calibration-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-calibration" class="panel-collapse collapse">
+            <div class="panel-body">
+              <div id = "calibration-analysis-body" style = "margin:10px">
+              Calibration options
+              </div>
+
+              <!-- Files display -->
+              <div class="panel panel-default", id = 'calibration-files'>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a class="toggle" data-toggle="collapse" href="#collapse-calibration-files"> Files </a>
+                  </h4>
+                </div>
+
+                <div id="collapse-calibration-files" class="panel-collapse collapse">
+                  <div class="panel-body", id = "files-calibration-analysis-body">
+                    <table class="table" style="width:95%">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Name</th>
+                              <th>Folder</th>
+                            </tr>
+                          </thead>
+                          <tbody id = 'calibration-analysis-files'></tbody>
+                        </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end of Files display -->
+            </div>
+          </div>
+        </div>
+        <!--end of Analysis panel -->
+
       </div>
       <div class="modal-footer">
-        <button type="submit" class="btn btn-success btn-default" onclick="add_worker()"><span class="glyphicon glyphicon-off"></span> Run</button>
+        <button type="submit" class="btn btn-success btn-default" onclick=""><span class="glyphicon glyphicon-fire"></span> Run</button>
         <button type="submit" class="btn btn-danger btn-default" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel</button>
       </div>
     </div>
   </div>
-</div>
-
-<div style = "display:none" id = "noise-analysis">
-  This is the noise analysis
-</div>
-
-<div style = "display:none" id = "vna-analysis">
-  This is the noise analysis
 </div>
 
 {% endblock %}

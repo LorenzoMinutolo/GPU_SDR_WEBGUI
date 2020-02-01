@@ -12,7 +12,7 @@ from diagnostic_text import *
 from multiprocessing import RLock, Manager
 
 commit_manager = Manager()
-commit_lock = RLock() # Recursive lock because db.session.commit() is a non-thread-safe operation
+commit_lock = commit_manager.RLock() # Recursive lock because db.session.commit() is a non-thread-safe operation
 
 class User(UserMixin,db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -77,6 +77,15 @@ class Measure(db.Model):
 
     def __repr__(self):
         return '<Measure {}>'.format(self.id)
+
+def filename_to_abs_path(filename):
+    try:
+        x = Measure.query.filter(Measure.relative_path.like("%"+os.path.basename(filename)+"%")).one()
+        return os.path.join(app.config['GLOBAL_MEASURES_PATH'],x.relative_path)
+    except NoResultFound:
+        print_warning("No results found when converting file %s to relative path"%filename)
+    except MultipleResultsFound:
+        print_warning("Multiple results found when converting file %s to relative path"%filename)
 
 def get_associated_plots(path_list):
     '''

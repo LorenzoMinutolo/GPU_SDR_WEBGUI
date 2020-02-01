@@ -9,6 +9,8 @@ from app import socketio, check_connection, measure_manager, job_manager, app
 from diagnostic_text import *
 from models import add_file_selected, user_files_selected, remove_file_selected, clear_user_file_selected
 
+from .explore_helper import *
+
 @socketio.on('explore_clear_selection')
 def clear_all_selected_files(msg):
     '''
@@ -58,91 +60,9 @@ def select_from_folder(msg):
                 ret = ret and add_file_selected(name)
     socketio.emit('update_selection',json.dumps({'files':user_files_selected(),'err':int(ret)}))
 
-
-def analysis_check_vna_file(config, path):
-    '''
-    Check the analysis one can do on a VNA file
-    '''
-
-def check_noise_file(config, path):
-    '''
-    Check the analysis one can do on a Noise file
-    '''
-
-def check_file_list(config, path_list):
-    '''
-    wrapper function for analysis check file.
-    '''
-
-@socketio.on('analysis_modal;_config')
+@socketio.on('analysis_modal_config')
 def define_possible_analysis(msg):
-    config = {
-        'multi':{
-            'available':0,
-            'allowed':0,
-            'reason':'not implemented',
-            'diagnostic':{
-                'available':0,
-                'allowed':0,
-                'reason':'not checked',
-                'files':[]
-            }
-        },
-        'single':{
-            'available':0,
-            'allowed':0,
-            'reason':'not checked',
-            'vna_simple':{
-                'available':0,
-                'allowed':0,
-                'reason':'not checked',
-                'files':[]
-            },
-            'vna_dynamic':{
-                'available':0,
-                'allowed':0,
-                'reason':'not checked',
-                'files':[]
-            },
-            'fitting':{
-                'available':0,
-                'allowed':0,
-                'reason':'not checked',
-                'files':[]
-            },
-            'psd':{
-                'available':0,
-                'allowed':0,
-                'reason':'not checked',
-                'files':[]
-            },
-            'qf':{
-                'available':0,
-                'allowed':0,
-                'reason':'not checked',
-                'files':[]
-            },
-            'qf_psd':{
-                'available':0,
-                'allowed':0,
-                'reason':'not checked',
-                'files':[]
-            },
-            'calibrated_psd':{
-                'available':0,
-                'allowed':0,
-                'reason':'not checked',
-                'files':[]
-            },
-            'pair_subtraction':{
-                'available':0,
-                'allowed':0,
-                'reason':'not checked',
-                'files':[]
-            }
-        },
-        'excluded_files':[]
-    }
-
     file_list = user_files_selected()
-    socketio.emit('analyze_config_modal',json.dumps(config))
+    config = Analysis_Config(file_list)
+    config.check_file_list() # Determine which analysis on which file
+    socketio.emit('analyze_config_modal',json.dumps(config.config))

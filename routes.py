@@ -9,7 +9,6 @@ from werkzeug.urls import url_parse
 from flask_login import logout_user
 from datetime import datetime
 import glob,os
-from pathlib import Path
 import json
 from flask import g
 import ntpath

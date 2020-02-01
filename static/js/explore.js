@@ -51,14 +51,49 @@ function clear_selected(){
   location.reload();
 }
 
+function config_single_analysis_headers(jdict){
+  for (var key in jdict) {
+    if (jdict.hasOwnProperty(key)) {
+      if (parseInt(jdict[key]['available'])){
+
+        //fill file table
+        var text = ''
+        for (i = 0; i < jdict[key]['files'].length; i++) {
+          text += "<tr> <td>" + i + "</td> <td>"+ jdict[key]['files'][i] + "</td> <td>"+ jdict[key]['paths'][i] + "</td> </tr>";
+        }
+        document.getElementById(key+'-analysis-files').innerHTML = text
+
+        //header
+        document.getElementById(key+'-analysis-header').innerHTML = "files: "+jdict[key]['files'].length
+
+      }else{
+
+        //header
+        document.getElementById(key+'-analysis-header').innerHTML = "<span class=\"glyphicon glyphicon-remove\"></span>"
+
+        //disable file tab
+        document.getElementById(key+'-files').style["display"] = "none"
+
+        //display failure message
+        document.getElementById(key+'-analysis-body').innerHTML = jdict[key]['reason']
+
+      }
+    }
+  }
+}
+
+
 socket.on( 'analyze_config_modal', function( msg ) {
   //apply the configuration
+  var config = JSON.parse(msg)
+  console.log(config)
+  config_single_analysis_headers(config['single'])
 
   //finally activate the modal
   $('#analysis-modal').modal('show');
 })
 
 function configure_analyze_modal() {
-  //request configuration of the modal
-  socket.emit('analysis_modal;_config', {});
+  //request configuration of the modal, no needs of sending the file list as it's server managed
+  socket.emit('analysis_modal_config', {});
 }

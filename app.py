@@ -54,6 +54,7 @@ class Config(object):
     GLOBAL_MEASURES_PATH = GLOBAL_MEASURES_PATH
     GLOBAL_PLOTS_PATH = GLOBAL_PLOTS_PATH
     REDIS_WORKERS = REDIS_WORKERS
+    APP_ADDR = APP_ADDR
 
 app = Flask(__name__)
 app.secret_key =SECRET_KEY
@@ -140,4 +141,4 @@ if __name__ == '__main__':
             exit()
     clear_all_files_selected()
     print("Running application on addr: %s"%APP_ADDR)
-    socketio.run(app,host= APP_ADDR)
+    socketio.run(app,host= APP_ADDR, port = "5000") #port 33 and sudo for running on local network?

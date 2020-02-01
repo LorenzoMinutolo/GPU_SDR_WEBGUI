@@ -5,7 +5,7 @@ import numpy as np
 import pyUSRP as u
 from flask_socketio import emit
 from flask_login import current_user
-from app import socketio, check_connection, measure_manager
+from app import socketio, check_connection, measure_manager, connection_lock, INFO
 
 @socketio.on('server_connect')
 def handle_job_update(msg, methods=['GET', 'POST']):
