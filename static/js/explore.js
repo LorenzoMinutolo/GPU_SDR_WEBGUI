@@ -21,6 +21,7 @@ socket.on( 'update_selection', function( msg ) {
     text += "<tr>" +"<th scope=\"row\">"+ i +"</th>" + "<th>" + file_list[i] + "</th>" + "</tr>";
   }
   document.getElementById('selected_files_list').innerHTML = text
+  document.getElementById('file_sel_num').innerHTML = "Selected files: " + file_list.length
 })
 
 function selected_file_op(chk){
@@ -51,32 +52,45 @@ function clear_selected(){
   location.reload();
 }
 
+function config_excluded_files(jdict){
+  var text = ''
+  for (i = 0; i < jdict['excluded_files'].length; i++) {
+    text += "<tr> <td>" + i + "</td> <td>"+ jdict['excluded_files'][i] + "</td> <td>"+ jdict['excluded_paths'][i] + "</td> ";
+    text += "<td>" + jdict['exclusion_reason'][i]+ "</td> </tr>"
+
+  }
+  document.getElementById('exclusion-analysis-files').innerHTML = text
+  document.getElementById('exclusion-analysis-header').innerHTML = "files: "+jdict['excluded_files'].length
+}
+
 function config_single_analysis_headers(jdict){
   for (var key in jdict) {
     if (jdict.hasOwnProperty(key)) {
       if (parseInt(jdict[key]['available'])){
-
         //fill file table
         var text = ''
         for (i = 0; i < jdict[key]['files'].length; i++) {
-          text += "<tr> <td>" + i + "</td> <td>"+ jdict[key]['files'][i] + "</td> <td>"+ jdict[key]['paths'][i] + "</td> </tr>";
+          text += "<tr> <td>" + i + "</td> <td>"+ jdict[key]['files'][i] + "</td> <td>"+ jdict[key]['paths'][i] + "</td> ";
+          text += "<td>"
+          if(jdict[key]['override'][i]){
+            text += "<span class=\"glyphicon glyphicon-ok\"></span>"
+          }else{
+            text += "<span class=\"glyphicon glyphicon-remove\"></span>"
+          }
+          text += "</td> </tr>"
         }
         document.getElementById(key+'-analysis-files').innerHTML = text
-
         //header
         document.getElementById(key+'-analysis-header').innerHTML = "files: "+jdict[key]['files'].length
-
       }else{
-
         //header
         document.getElementById(key+'-analysis-header').innerHTML = "<span class=\"glyphicon glyphicon-remove\"></span>"
-
         //disable file tab
         document.getElementById(key+'-files').style["display"] = "none"
-
         //display failure message
         document.getElementById(key+'-analysis-body').innerHTML = jdict[key]['reason']
-
+        //uncheckable item
+        document.getElementById(key+'-analysis-chk').disabled = true
       }
     }
   }
@@ -87,6 +101,7 @@ socket.on( 'analyze_config_modal', function( msg ) {
   //apply the configuration
   var config = JSON.parse(msg)
   console.log(config)
+  config_excluded_files(config)
   config_single_analysis_headers(config['single'])
 
   //finally activate the modal

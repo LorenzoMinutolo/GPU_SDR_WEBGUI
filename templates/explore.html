@@ -111,19 +111,34 @@
 
 
         <div>
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th>File selected</th>
-              </tr>
-            </thead>
+          <div class="panel panel-default", id = 'selected_panel-files'>
+            <div class="panel-heading">
+              <h4 class="panel-title">
+                <a class="toggle" data-toggle="collapse" href="#collapse-selected_panel-files"> Selected Files </a>
+                <span style="float:right" id ="file_sel_num"><span>
+              </h4>
+            </div>
 
-            <tbody id="selected_files_list"></tbody>
+            <div id="collapse-selected_panel-files" class="panel-collapse collapse">
+              <div class="panel-body", id = "files-selected_panel-analysis-body">
 
-          </table>
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th>File selected</th>
+                    </tr>
+                  </thead>
 
-          <div>
+                  <tbody id="selected_files_list"></tbody>
+                </table>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+
 
 
 <!-- PLOT DISPLAY PART -->
@@ -199,7 +214,7 @@
       <div class="modal-header" style="padding:20px 20px;">
         <button type="button" class="close" data-dismiss="modal">&times;</button>
         <h4><span class="glyphicon glyphicon-stats"></span> Available analysis</h4>
-        Select which analysis to perform and related options. Click analysis name item to expand the options.
+        Chose which analysis to perform on selected files and related options. Click analysis name item to expand the options, check the panel to run it.
       </div>
       <div class="modal-body" style="padding:40px 50px;" id = "analysis-modal-configure">
 
@@ -237,6 +252,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'delay-analysis-files'></tbody>
@@ -284,6 +300,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'vna_simple-analysis-files'></tbody>
@@ -331,6 +348,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'vna_dynamic-analysis-files'></tbody>
@@ -378,6 +396,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'fitting-analysis-files'></tbody>
@@ -425,6 +444,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'psd-analysis-files'></tbody>
@@ -472,6 +492,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'qf-analysis-files'></tbody>
@@ -519,6 +540,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'qf_psd-analysis-files'></tbody>
@@ -566,6 +588,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'calibrated_psd-analysis-files'></tbody>
@@ -613,6 +636,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'pair_subtraction-analysis-files'></tbody>
@@ -660,6 +684,7 @@
                               <th>#</th>
                               <th>Name</th>
                               <th>Folder</th>
+                              <th>Overwrite data</th>
                             </tr>
                           </thead>
                           <tbody id = 'calibration-analysis-files'></tbody>
@@ -672,6 +697,33 @@
           </div>
         </div>
         <!--end of Analysis panel -->
+
+        <div class="panel panel-default", id = 'exclusion-files'>
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <a class="toggle" data-toggle="collapse" href="#collapse-exclusion-files"> <b>Excluded files</b> </a>
+              <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+              title="Files that cannot be analyzed"></a>
+              <span id = "exclusion-analysis-header" style = "float:right"></span>
+            </h4>
+          </div>
+
+          <div id="collapse-exclusion-files" class="panel-collapse collapse">
+            <div class="panel-body", id = "files-exclusion-analysis-body">
+              <table class="table" style="width:95%">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Folder</th>
+                        <th>Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody id = 'exclusion-analysis-files'></tbody>
+                  </table>
+            </div>
+          </div>
+        </div>
 
       </div>
       <div class="modal-footer">

@@ -53,7 +53,6 @@ def select_from_folder(msg):
     '''
     relative_path = os.path.join(msg['path'], msg['folder'])
     ret = True
-    print(app.config["GLOBAL_MEASURES_PATH"],relative_path)
     for root, dirs, files in os.walk(os.path.join(app.config["GLOBAL_MEASURES_PATH"],relative_path), topdown=False):
         for name in files:
             if name.endswith('.h5'):

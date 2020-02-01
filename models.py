@@ -79,13 +79,18 @@ class Measure(db.Model):
         return '<Measure {}>'.format(self.id)
 
 def filename_to_abs_path(filename):
+    '''
+    Return an error flag and eventually the complete path
+    '''
     try:
         x = Measure.query.filter(Measure.relative_path.like("%"+os.path.basename(filename)+"%")).one()
-        return os.path.join(app.config['GLOBAL_MEASURES_PATH'],x.relative_path)
+        return False, os.path.join(app.config['GLOBAL_MEASURES_PATH'],x.relative_path)
     except NoResultFound:
         print_warning("No results found when converting file %s to relative path"%filename)
+        return True, filename
     except MultipleResultsFound:
         print_warning("Multiple results found when converting file %s to relative path"%filename)
+        return True, filename
 
 def get_associated_plots(path_list):
     '''
@@ -112,6 +117,19 @@ def get_associated_plots(path_list):
 
         ret['plots'].append(current_plots)
         ret['err'].append(err)
+
+    return ret
+
+
+def check_db_measure(path):
+    '''
+    Check if a measure actually exists in the database.
+    '''
+    try:
+        measure = Measure.query.filter(Measure.relative_path == path).one()
+        ret = True
+    except NoResultFound:
+        ret = False
 
     return ret
 

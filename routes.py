@@ -150,7 +150,7 @@ def scanfiles(current_path):
     for file in glob.glob(current_path+"*.h5"):
         files.append(str(file))
         sizes.append(str(os.stat(str(file)).st_size))
-    f = [ntpath.basename(c) for c in files]
+    f = [os.path.basename(c) for c in files]
     p = []
     k = []
     s = []
