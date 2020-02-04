@@ -5,6 +5,7 @@
 <!-- Needed for jinja interaction-->
 <script>
   var currenpath = "{{simple_path }}"
+  var file_list = []
 </script>
 
 <script type="text/javascript" src={{ url_for('static', filename = 'js/explore.js') }}></script>
@@ -40,24 +41,23 @@
         <center style = "margin-bottom:10px;">
           <h4 href="#" data-toggle="tooltip"title="Action to perform on selected files." >Actions </h4>
         </center>
-        <input type="submit" class="btn btn-secondary" name="plot_button" value="Plot" >
-        <input type="submit" class="btn btn-secondary" name="analyze_button" value="Analyze"  onclick="configure_analyze_modal()">
-        <input type="submit" class="btn btn-secondary" name="export_button" value="Export" >
+        <input type="submit" class="btn btn-secondary" name="plot_button" value="Plot" ></input>
+        <input type="submit" class="btn btn-secondary" name="analyze_button" value="Analyze"  onclick="configure_analyze_modal()"></input>
+        <input type="submit" class="btn btn-secondary" name="export_button" value="Export" ></input>
       </div>
       <div class="btn-group mr-2 " role="group" aria-label="Second group">
         <center style = "margin-bottom:10px;">
           <h4 href="#" data-toggle="tooltip"title="All actions will be performed on these files" > File selector</h4>
         </center>
-        <input type="submit" class="btn btn-secondary" name="clear_selected" value="Clear selected" onclick="clear_selected()" >
-        <input type="submit" class="btn btn-secondary" name="selected_files (0)" value ="Selected files (0)" id="selected-files-btn"  onclick="open_selected_modal();">
+        <input type="submit" class="btn btn-secondary" name="clear_selected" value="Clear selected" onclick="clear_selected()" ></input>
+        <input type="submit" class="btn btn-secondary" name="selected_files (0)" value ="Selected files (0)" id="selected-files-btn"  onclick="open_selected_modal();"></input>
       </div>
       <div class="btn-group mr-2 " role="group" aria-label="Third group">
         <center style = "margin-bottom:10px;">
-          <h4 href="#" data-toggle="tooltip"title="Various analysis/plots can reference an other file, add the file to this list to use it as reference" >Source file selector </h4>
+          <h4 href="#" data-toggle="tooltip"title="Various analysis/plots can reference an other file, add the file to this list to use it as reference">Source file selector </h4>
         </center>
-        <input type="submit" class="btn btn-secondary" name="export_source" value="Manage sources" data-toggle="modal" data-target="#source-manage-modal" >
-        <input type="submit" class="btn btn-outline-secondary" name="manage_source" value="Drag and drop source link" ondrop="drop_link(event)" ondragover="allowDrop(event)"
-        data-toggle="tooltip"title="Drag a link or a folder over here to add the source file(s)" >
+        <input type="submit" class="btn btn-secondary" name="export_source" value="Manage sources" data-toggle="modal" data-target="#source-manage-modal" ></input>
+        <input type="submit" class="btn btn-secondary" name="manage_source" value="Add to source" onclick = "add_source_file_prompt()"></input>
       </div>
     </div>
     <div style="width: 100%; display: table;">
@@ -185,7 +185,6 @@
         <h4><span class="glyphicon glyphicon-tags" style='margin-right:10px'></span> Manage source files</h4>
         Source file management. The table below represent your source file group. In this window you can visualize, remove or check the files.
         The source files are used to initialize fits or measurement.
-        To add files to this category, drag and drop the links from the explorer on the button next to the one just pressed. Measure displaying the remove! button are marked as permanent.
       </div>
         <div class="modal-body" style="padding:40px 50px;">
           <table class="table" id = "source-file-table">
@@ -207,9 +206,9 @@
                 <td > {{source_files[i]['source_kind']}} </td>
                 <td >
                   {% if source_files[i]['source_perm'] %}
-                   <input type="submit" class="btn btn-secondary" value = "Remove!"> </input>
+                   <input type="submit" class="btn btn-link" value = "Remove!" onclick="revome_safe_source(this)" name ="{{source_files[i]['source_path']}}" > </input>
                   {%else%}
-                  <input type="submit" class="btn btn-secondary" value = "Remove"> </input>
+                  <input type="submit" class="btn btn-link" value = "Remove" onclick="remove_source(this)" name ="{{source_files[i]['source_path']}}" > </input>
                   {%endif%}
                 </td>
               </tr>
@@ -217,6 +216,12 @@
 
             </tbody>
           </table>
+        </div>
+        <div class="modal-footer">
+          <div style = "margin-bottom:10px"><i>Note: on deletion of single items, the table may not update correctly. Refreshing the page will display the new source file list.</i></div>
+          <button type="submit" class="btn btn-warning btn-default" onclick="remove_tmp_source_file()"><span class="glyphicon glyphicon-remove-sign"></span> Remove non-permanent</button>
+          <button type="submit" class="btn btn-info btn-default" onclick="consolidate_source_file()"><span class="glyphicon glyphicon-list"></span> Consolidate files</button>
+          <button type="submit" class="btn btn-danger btn-default" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel</button>
         </div>
 
     </div>
@@ -228,8 +233,9 @@
   ( function($) {
     $(document).ready(function() {
       var collapsedGroups = {};
-      var source_table_json = JSON.parse('{{source_files | tojson}}');
+      //var source_table_json = JSON.parse('{{source_files | tojson}}');
       var table = $('#source-file-table').DataTable({
+          //data:source_table_json,
           order: [[0, 'asc']],
           rowGroup: {
             // Uses the 'row group' plugin
@@ -241,11 +247,14 @@
                 r.style.display = collapsed ? '' : 'none'; // Inverted to start with ollapsed rows
               });
               return $('<tr/>')
-              .append('<td colspan="4">' + group + ' (' + rows.count() + ') <input type="submit" class="btn btn-secondary" id = "remove_group_source" value = "Remove group" style=\'float:right\'> </input></td>')
+              .append('<td colspan="4">' + group + ' (' + rows.count() + ') <input type="submit" class="btn btn-secondary" id = "remove_group_source" value = "Remove group" name = "' + group + '" style=\'float:right\' onclick = "remove_source_group(this)"> </input></td>' )
               .attr('data-name', group)
               .toggleClass('collapsed', collapsed);
             }
           }
+      });
+      $("#source-file-table").on('click', '.btn-link', function () {
+        $(this).parent().parent().remove();
       });
 
       $('#source-file-table tbody').on('click', 'tr.group-start', function () {

@@ -15,7 +15,7 @@ socket.on( 'update_selection', function( msg ) {
     alert("Error: cannot add a file twice in present implementation")
   }
   console.log(JSON.parse(msg)['files'].join(", "))
-  var file_list = JSON.parse(msg)['files']
+  file_list = JSON.parse(msg)['files']
   var text = ""
 
   for (i = 0; i < file_list.length; i++) {
@@ -138,28 +138,11 @@ $(document).ready(function(){
   diasble_init_fit_panel(document.getElementById("fit-thr-chk"))
 });
 
-function allowDrop(ev) {
-  ev.preventDefault();
-}
-
-function dragEventHandler(theEvent) {
-    theEvent.dataTransfer.setData("Text", theEvent.target.id);
-    console.log(theEvent.target.id)
-}
-
-var id_add_source = null
-var item_add_source = null
-var source_path = null
-
-function drop_link(event) {
-  id_add_source = event.dataTransfer.getData("Text");
-  item_add_source = document.getElementById(id_add_source)
-  source_path = currenpath + item_add_source.innerHTML
-  console.log(source_path)
-  if(source_path.substr(source_path.length - 3) == ".h5"){
-    var text = "File: <b>" + item_add_source.innerHTML +"</b> will be added."
-  }else{
-    var text = "All files in the <b>" + item_add_source.innerHTML +"</b> folder will be added (non recursive)"
+function add_source_file_prompt(){
+  //parse modal
+  text = "<b>Files to be added as source:</b><br>"
+  for (i = 0; i < file_list.length; i++) {
+    text += '<span id = "'+ file_list[i].substring(0, file_list[i].length - 3) +'">' + file_list[i] + "</span><br>"
   }
   document.getElementById("source-files-list").innerHTML = text
   $("#source-files-modal").modal('show');
@@ -168,9 +151,60 @@ function drop_link(event) {
 function add_source_file(event) {
   var checked = document.getElementById("permanent_source_checkbox").checked
   var group_name = document.getElementById("source-file-group").value
-  socket.emit('explore_add_source', {'file':source_path, 'permanent':checked, 'group':group_name});
-  id_add_source = null
-  item_add_source = null
-  source_path = null
-  location.reload();
+  for (i = 0; i < file_list.length; i++) {
+    socket.emit('explore_add_source', {'file':file_list[i], 'permanent':checked, 'group':group_name});
+  }
 }
+
+socket.on( 'explore_add_source_done', function( msg ) {
+  var res = JSON.parse(msg)
+  if(parseInt(res['result']) == 0){
+    document.getElementById(res['file'].substring(0, res['file'].length - 3)).style.color = "red";
+  }else{
+    document.getElementById(res['file'].substring(0, res['file'].length - 3)).style.color = "green";
+  }
+  if(res["file"] == file_list[file_list.length - 1]){
+    setTimeout(function(){
+      alert("Source file update compelte, click ok to refresh.")
+      clear_selected();
+    }, 300)
+  }
+})
+
+function remove_source_group(btn){
+  if(confirm("Remove every file from source group "+btn.name+" ?")){
+    socket.emit('explore_remove_source', {'group':btn.name});
+    location.reload();
+  }
+}
+function revome_safe_source(btn){
+  if(confirm("Remove permanent source file "+btn.name+" ?")){
+    socket.emit('explore_remove_source', {'file':btn.name});
+  }
+}
+
+function remove_source(btn){
+  socket.emit('explore_remove_source', {'file':btn.name});
+}
+
+function consolidate_source_file(){
+  socket.emit('consolidate_source_files', {});
+}
+
+socket.on( 'consolidate_source_files', function( msg ) {
+  //apply the configuration
+  console.log(JSON.parse(msg))
+  alert('Source files checked, click to refresh.')
+  location.reload();
+})
+
+function remove_tmp_source_file(){
+  socket.emit('remove_temporary_source_files', {});
+  location.reload()
+}
+
+socket.on( 'remove_temporary_source_files', function( msg ) {
+  //apply the configuration
+  alert('Non permanent source file removed, click to refresh.')
+  location.reload();
+})

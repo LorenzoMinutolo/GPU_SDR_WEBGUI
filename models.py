@@ -317,6 +317,17 @@ def check_all_plots():
             if not ret:
                 print_error("Something went wrong in database logic")
 
+def measure_path_from_name(name):
+    '''
+    Return the measure path from the file name. If multiple path found or no path found raise ValueError.
+    '''
+    try:
+        return Measure.query.filter(Measure.relative_path.like("%" + name + "%")).one().relative_path
+    except NoResultFound:
+        raise ValueError("Cannot convert name to path as no results from query")
+    except MultipleResultsFound:
+        raise ValueError("Cannot convert name to path as multiple results from query")
+
 
 def patch_measure_from_path(rel_path, verbose = True):
     '''
@@ -700,7 +711,7 @@ def remove_file_source(path):
 
     try:
         x = Source_files.query.filter(Source_files.measure==path).one()
-        if x.pernament:
+        if x.permanent:
             print_warning("removing permanent source file")
     except NoResultFound:
         print_warning("Cannot remove temporary measure as it's not there")
@@ -736,17 +747,21 @@ def consolidate_sources():
     print_warning("Consolidating all source files for user %s..."%current_user.username)
     commit_lock.acquire()
     q_results = Source_files.query.filter(Source_files.user == current_user.username).all()
+    res = []
     for q in q_results:
         try:
-            Measure.query.filter(Mesure.relative_path == q.measure).one()
+            Measure.query.filter(Measure.relative_path == q.measure).one()
         except NoResultFound:
             print_warning("Source file %s has not been found in the measures database, removing..")
+            res.append(q.measure)
             db.session.delete(q)
         except MultipleResultsFound:
             print_warning("Source file %s has has been linked to multiple measures database, removing..")
+            res.append(q.measure)
             db.session.delete(q)
         else:
             print("Source file %s is ok"%q.measure)
+    return res
 
 
     db.session.commit()
@@ -770,7 +785,7 @@ def clear_all_files_source(permanent = False):
     db.session.commit()
     commit_lock.release()
 
-def clear_user_file_source():
+def clear_user_file_source(permanent = False):
     '''
     Clear the file selected for a single user
     '''
@@ -780,9 +795,11 @@ def clear_user_file_source():
         author = current_user.username
     else:
         author = "TestEnv"
-    print("Clearing all temporary file selection dor use %s..."%author)
-    list_x = Source_files.query.filter(Source_files.user==author).all()
-
+    if permanent:
+        print_warning("Clearing all temporary file selection dor use %s..."%author)
+        list_x = Source_files.query.filter(Source_files.user==author).all()
+    else:
+        list_x = Source_files.query.filter(Source_files.user==author).filter(Source_files.permanent == False).all()
     commit_lock.acquire()
     for x in list_x:
         db.session.delete(x)
@@ -790,7 +807,7 @@ def clear_user_file_source():
     db.session.commit()
     commit_lock.release()
 
-def user_files_source():
+def user_files_source(group = None):
     '''
     Return a list of strings with the filename selected
     '''
@@ -800,7 +817,10 @@ def user_files_source():
     else:
         author = "TestEnv"
     commit_lock.acquire()
-    list_x = Source_files.query.filter(Source_files.user==author).all()
+    if group is None:
+        list_x = Source_files.query.filter(Source_files.user==author).all()
+    else:
+        list_x = Source_files.query.filter(Source_files.user==author).filter(Source_files.group==group).all()
     commit_lock.release()
     path = []
     kind = []

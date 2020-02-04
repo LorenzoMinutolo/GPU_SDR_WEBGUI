@@ -7,8 +7,8 @@ from flask_socketio import emit
 from flask_login import current_user
 from app import socketio, check_connection, measure_manager, job_manager, app
 from diagnostic_text import *
-from models import add_file_selected, user_files_selected, remove_file_selected, clear_user_file_selected, add_file_source
-
+from models import add_file_selected, user_files_selected, remove_file_selected, clear_user_file_selected, add_file_source, consolidate_sources
+from models import remove_source_group, clear_user_file_source, remove_file_source, measure_path_from_name
 from .explore_helper import *
 
 @socketio.on('explore_clear_selection')
@@ -74,4 +74,33 @@ def add_source_file(msg):
         gr = None
     else:
         gr = msg['group']
-    add_file_source(msg['file'], msg['permanent'], gr)
+    try:
+        file_path = measure_path_from_name(msg['file'])
+        add_file_source(file_path, msg['permanent'], gr)
+        result = 1
+    except ValueError:
+        print_warning("Database error, cannot add file %s to source"%msg['file'])
+        result = 0
+    socketio.emit('explore_add_source_done',json.dumps({'file':str(msg['file']),'result':result}))
+
+
+@socketio.on('explore_remove_source')
+def remove_source(msg):
+    try:
+        group = msg['group']
+        print('Removing source group %s'%group)
+        remove_source_group(group)
+    except KeyError:
+        measure = msg['file']
+        print('Removing source file %s'%measure)
+        remove_file_source(measure)
+
+@socketio.on('consolidate_source_files')
+def consolidate_source_files(msg):
+    deleted_items = consolidate_sources()
+    socketio.emit('consolidate_source_files',json.dumps(deleted_items))
+
+@socketio.on('remove_temporary_source_files')
+def remove_temporary_source_files(msg):
+    clear_user_file_source()
+    socketio.emit('remove_temporary_source_files',json.dumps({}))
