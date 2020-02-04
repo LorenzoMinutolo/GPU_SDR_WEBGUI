@@ -7,7 +7,7 @@ from flask_socketio import emit
 from flask_login import current_user
 from app import socketio, check_connection, measure_manager, job_manager, app
 from diagnostic_text import *
-from models import add_file_selected, user_files_selected, remove_file_selected, clear_user_file_selected
+from models import add_file_selected, user_files_selected, remove_file_selected, clear_user_file_selected, add_file_source
 
 from .explore_helper import *
 
@@ -65,3 +65,13 @@ def define_possible_analysis(msg):
     config = Analysis_Config(file_list)
     config.check_file_list() # Determine which analysis on which file
     socketio.emit('analyze_config_modal',json.dumps(config.config))
+
+
+@socketio.on('explore_add_source')
+def add_source_file(msg):
+    print("Adding %s to file source (permanent? %s) for user %s"%(msg['file'], msg['permanent'], current_user.username))
+    if msg['group'] == '':
+        gr = None
+    else:
+        gr = msg['group']
+    add_file_source(msg['file'], msg['permanent'], gr)

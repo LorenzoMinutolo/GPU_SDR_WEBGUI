@@ -12,7 +12,7 @@ import glob,os
 import json
 from flask import g
 import ntpath
-from models import user_files_selected
+from models import user_files_selected, user_files_source
 from app import u, check_connection
 
 
@@ -204,6 +204,15 @@ def explore_all():
     return render_template('explore_all.html', title='Explore_all', allfiles = list(zip(files, paths, sizes, kinds)), current_meas_path = current_path)
 
 
+@app.route('/single_file', methods=['GET', 'POST'])
+@app.route('/single_file/<path:path>', methods=['GET', 'POST'])
+@login_required
+def single_file(path = ""):
+    return render_template('hdf5_render.html', title='H5_view',
+        target_file = os.path.basename(path)
+        )
+
+
 @app.route('/explore', methods=['GET', 'POST'])
 @app.route('/explore/<path:path>', methods=['GET', 'POST'])
 @login_required
@@ -217,6 +226,9 @@ def explore(path = ""):
         return send_from_directory(directory=os.path.dirname(current_path), filename=os.path.basename(path))
     elif path.endswith(".html"):
         print('file requested: %s'%path)
+        return send_from_directory(directory=os.path.dirname(current_path), filename=os.path.basename(path))
+    elif path.endswith(".h5"):
+        print("display properties of H5 file")
         return send_from_directory(directory=os.path.dirname(current_path), filename=os.path.basename(path))
     else:
         folder_to_scan = []
@@ -274,7 +286,15 @@ def explore(path = ""):
 
         full_paths_list = [os.path.join(path,x) for x in files]
         measure_link = get_associated_plots(full_paths_list)
-        #print(measure_link)
+        source_path, source_kind, source_perm, source_group = user_files_source()
+        source_group_list = list(set(source_group))
+        DL = {
+            'source_path':source_path,
+            'source_kind':source_kind,
+            'source_perm':source_perm,
+            'source_group':source_group,
+            }
+        DataTable_source = [dict(zip(DL,t)) for t in zip(*DL.values())]
         return render_template('explore.html', title='Explore',
             allfiles = list(zip(files, paths, sizes, kinds)),
             measure_link = measure_link,
@@ -283,7 +303,9 @@ def explore(path = ""):
             current_path = url_for("explore")+"/"+path,
             visual_path = path.split("/")[:-1],
             simple_path = path,
-            selected_files = user_files_selected()
+            selected_files = user_files_selected(),
+            source_group_set = source_group_list,
+            source_files = DataTable_source#json.dumps(DataTable_source)
             )
 #style="width: auto !important; display: inline-block; max-width: 100%;"
 #style="display: flex !important; justify-content: center; align-items: center;"

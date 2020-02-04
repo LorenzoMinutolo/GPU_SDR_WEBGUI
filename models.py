@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from app import app,db,u
 from sqlalchemy.orm.exc import NoResultFound, StaleDataError, MultipleResultsFound
-import os
+import os, glob
 from werkzeug.security import generate_password_hash, check_password_hash
 from search import add_to_index, remove_from_index, query_index
 from flask_login import UserMixin
@@ -625,3 +625,190 @@ def user_files_selected():
             x.measure
         )
     return ret
+
+# Source file select, was too big for cookies.
+# This table is not associated with the database directly, I don't see the point at this stage
+class Source_files(db.Model):
+    __tablename__ = 'Source_files'
+    id = db.Column(db.Integer, primary_key=True)
+    measure = db.Column(db.String(140))
+    user = db.Column(db.String(140))
+    kind = db.Column(db.String(140))
+    group = db.Column(db.String(140), default='general')
+    permanent = db.Column(db.Boolean, default=False) # avoid deletion over restart of the application
+    def __repr__(self):
+        return '<source_file {}>'.format(self.id)
+
+def add_file_source(path, permanent, group = None):
+    '''
+    Add a file to source file list
+    '''
+    global commit_lock
+    if group is None:
+        group = 'general'
+    if current_user != None:
+        author = current_user.username
+    else:
+        author = "TestEnv"
+    if path.endswith('.h5'):
+        try:
+            Source_files.query.filter(Source_files.measure==path).filter(Source_files.user==author).one()
+        except NoResultFound:
+            kind = u.get_meas_type(os.path.relpath(app.config["GLOBAL_MEASURES_PATH"] + path, os.getcwd()))[0]
+            m = Source_files(measure = path, user = author, permanent = permanent, group = group, kind = kind)
+
+            commit_lock.acquire()
+            db.session.add(m)
+            db.session.commit()
+            commit_lock.release()
+            return True
+        else:
+            print_warning("Cannot add %s, on source files of user %s. Already present"%(path,author))
+            return False
+    else:
+        ret = True
+        abs_path = os.path.join(os.path.relpath(app.config["GLOBAL_MEASURES_PATH"] + path, os.getcwd()),"*.h5")
+        print(abs_path)
+        if len(glob.glob(abs_path))!=0:
+            for f in glob.glob(abs_path):
+                print(f)
+                meas_name =os.path.join(path,os.path.basename(f))
+                try:
+                    Source_files.query.filter(Source_files.measure==meas_name).filter(Source_files.user==author).one()
+                except NoResultFound:
+                    kind = u.get_meas_type(f)[0]
+                    m = Source_files(measure = meas_name, user = author, permanent = permanent, group = group, kind = kind)
+
+                    commit_lock.acquire()
+                    db.session.add(m)
+                    db.session.commit()
+                    commit_lock.release()
+
+                else:
+                    print_warning("Cannot add %s, on source files of user %s. Already present"%(sub_path,author))
+                    ret = False
+            return ret
+        else:
+            print_warning("Cannot add %s, on source files of user %s. No file present"%(path,author))
+            return False
+
+def remove_file_source(path):
+    '''
+    Remove source file
+    '''
+    global commit_lock
+
+    try:
+        x = Source_files.query.filter(Source_files.measure==path).one()
+        if x.pernament:
+            print_warning("removing permanent source file")
+    except NoResultFound:
+        print_warning("Cannot remove temporary measure as it's not there")
+    except MultipleResultsFound:
+        print_warning("Cannot remove temporary measure as there are multiple with the same path")
+    else:
+        commit_lock.acquire()
+        db.session.delete(x)
+        db.session.commit()
+        commit_lock.release()
+        return True
+    return False
+
+
+def remove_source_group(group):
+    '''
+    Remove all measures in a source group.
+    '''
+    global commit_lock
+    print_warning("Cleaning source file group %s"%group)
+    commit_lock.acquire()
+    q_results = Source_files.query.filter(Source_files.group==group).all()
+    for q in q_results:
+        db.session.delete(q)
+    db.session.commit()
+    commit_lock.release()
+
+def consolidate_sources():
+    '''
+    Make sure that all measures in the source file table are present for the current user.
+    '''
+    global commit_lock
+    print_warning("Consolidating all source files for user %s..."%current_user.username)
+    commit_lock.acquire()
+    q_results = Source_files.query.filter(Source_files.user == current_user.username).all()
+    for q in q_results:
+        try:
+            Measure.query.filter(Mesure.relative_path == q.measure).one()
+        except NoResultFound:
+            print_warning("Source file %s has not been found in the measures database, removing..")
+            db.session.delete(q)
+        except MultipleResultsFound:
+            print_warning("Source file %s has has been linked to multiple measures database, removing..")
+            db.session.delete(q)
+        else:
+            print("Source file %s is ok"%q.measure)
+
+
+    db.session.commit()
+    commit_lock.release()
+
+def clear_all_files_source(permanent = False):
+    '''
+    Clear the source file table
+    '''
+    global commit_lock
+    print("Clearing all temporary file selection...")
+    if permanent:
+        list_x = Source_files.query.all()
+    else:
+        list_x = Source_files.query.filter(Source_files.permanent == False).all()
+
+    commit_lock.acquire()
+    for x in list_x:
+        db.session.delete(x)
+
+    db.session.commit()
+    commit_lock.release()
+
+def clear_user_file_source():
+    '''
+    Clear the file selected for a single user
+    '''
+    global commit_lock
+
+    if current_user != None:
+        author = current_user.username
+    else:
+        author = "TestEnv"
+    print("Clearing all temporary file selection dor use %s..."%author)
+    list_x = Source_files.query.filter(Source_files.user==author).all()
+
+    commit_lock.acquire()
+    for x in list_x:
+        db.session.delete(x)
+
+    db.session.commit()
+    commit_lock.release()
+
+def user_files_source():
+    '''
+    Return a list of strings with the filename selected
+    '''
+    global commit_lock
+    if current_user != None:
+        author = current_user.username
+    else:
+        author = "TestEnv"
+    commit_lock.acquire()
+    list_x = Source_files.query.filter(Source_files.user==author).all()
+    commit_lock.release()
+    path = []
+    kind = []
+    perm = []
+    group = []
+    for x in list_x:
+        path.append(x.measure)
+        kind.append(x.kind)
+        perm.append(x.permanent)
+        group.append(x.group)
+    return path, kind, perm, group

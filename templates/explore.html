@@ -10,6 +10,15 @@
 <script type="text/javascript" src={{ url_for('static', filename = 'js/explore.js') }}></script>
 <!-- This whole page is structured as a single form. Horrible but I cannot use the flask.form.request() method on a specific form name-->
 
+<!-- Some style for the buttons -->
+<style>
+  .btn-secondary:hover, .btn-secondary:focus, .btn-secondary:active, .btn-secondary.active, .open>.dropdown-toggle.btn-secondary {
+    color: #fff;
+    background-color: #285e8e;
+    border-color: #285e8e; /*set the color you want here*/
+}
+</style>
+
 <div class="panel panel-default w-100 padding-right: 10px; padding-left: 10px;">
   <div class="panel-heading">
     <div>
@@ -26,14 +35,32 @@
     </div>
   </div>
   <div class="panel-body">
-    <div style="width: 100%; display: table;">
-      <div style="display: table-row">
-        <input type="submit" name="plot_button" value="Plot" style = "margin-left: 10px; margin-bottom: 10px;">
-        <input type="submit" name="analyze_button" value="Analyze" style = "margin-left: 10px; margin-bottom: 10px;" onclick="configure_analyze_modal()">
-        <input type="submit" name="export_button" value="Export" style = "margin-left: 10px; margin-bottom: 10px;">
-        <input type="submit" name="export_source" value="Use as source" style = "margin-left: 10px; margin-bottom: 10px;">
-        <input type="submit" name="clear_selected" value="Clear selected" onclick="clear_selected()" style = "margin-left: 10px; margin-bottom: 10px;">
+    <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups" style = "margin-bottom:10px !important;">
+      <div class="btn-group mr-3 " role="group" aria-label="First group">
+        <center style = "margin-bottom:10px;">
+          <h4 href="#" data-toggle="tooltip"title="Action to perform on selected files." >Actions </h4>
+        </center>
+        <input type="submit" class="btn btn-secondary" name="plot_button" value="Plot" >
+        <input type="submit" class="btn btn-secondary" name="analyze_button" value="Analyze"  onclick="configure_analyze_modal()">
+        <input type="submit" class="btn btn-secondary" name="export_button" value="Export" >
       </div>
+      <div class="btn-group mr-2 " role="group" aria-label="Second group">
+        <center style = "margin-bottom:10px;">
+          <h4 href="#" data-toggle="tooltip"title="All actions will be performed on these files" > File selector</h4>
+        </center>
+        <input type="submit" class="btn btn-secondary" name="clear_selected" value="Clear selected" onclick="clear_selected()" >
+        <input type="submit" class="btn btn-secondary" name="selected_files (0)" value ="Selected files (0)" id="selected-files-btn"  onclick="open_selected_modal();">
+      </div>
+      <div class="btn-group mr-2 " role="group" aria-label="Third group">
+        <center style = "margin-bottom:10px;">
+          <h4 href="#" data-toggle="tooltip"title="Various analysis/plots can reference an other file, add the file to this list to use it as reference" >Source file selector </h4>
+        </center>
+        <input type="submit" class="btn btn-secondary" name="export_source" value="Manage sources" data-toggle="modal" data-target="#source-manage-modal" >
+        <input type="submit" class="btn btn-outline-secondary" name="manage_source" value="Drag and drop source link" ondrop="drop_link(event)" ondragover="allowDrop(event)"
+        data-toggle="tooltip"title="Drag a link or a folder over here to add the source file(s)" >
+      </div>
+    </div>
+    <div style="width: 100%; display: table;">
       <div style="display: table-row" >
         <div style="width: 30%; display: table-cell; padding:10px; background-color:#f8f9fa;">
           <!-- Folders table -->
@@ -52,7 +79,8 @@
                 <tbody>
                   {% for folder in allfolders: %}
                   <tr>
-                    <td><a href="{{ current_path }}{{ folder[0] }}/">{{ folder[0] }}</a></td>
+                    <td><a id ="folder-{{ folder[0] }}"  href="{{ current_path }}{{ folder[0] }}/" ondragstart="dragEventHandler(event)">{{ folder[0] }}</a></td>
+                    <!-- {{ current_path }}{{ folder[0] }}/ -->
                     <td>{{ folder[1] }}</td>
                     <td><button name ="folders" value= "{{ (folder[0]) }}" onclick = "add_folder_op(this)" style="margin:0px">All</button></td>
                   </tr>
@@ -69,7 +97,7 @@
                     <thead>
                       <tr>
                         <th>DB</th>
-                        <th>Plot</th>
+                        <th>Plots</th>
                         <th>Name</th>
                         <th>Size</th>
                         <th>Kind</th>
@@ -93,7 +121,8 @@
                           <span class="glyphicon glyphicon-remove"></span>
                           {% endif %}
                         </td>
-                        <td>{{ allfiles[i][0] }}</td>
+                        <td><a id = "file-{{ allfiles[i][0][:-3] }}" href="{{ url_for('single_file') }}/{{ allfiles[i][0] }}" ondragstart="dragEventHandler(event)">{{ allfiles[i][0] }}</a></td>
+                        <!-- "{{ url_for('single_file') }}/{{ allfiles[i][0] }}" -->
                         <td>{{ allfiles[i][2] }}</td>
                         <td>{{ allfiles[i][3] }}</td>
                         <td>
@@ -109,37 +138,154 @@
           </div>
         </div>
 
+<!-- SOURCE FILE PART -->
+<div class="modal fade" id="source-files-modal" role="dialog">
+  <div class="modal-dialog" >
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header" style="padding:20px 20px;">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4><span class="glyphicon glyphicon-plus"></span> Add source file</h4>
+        Add files to be used as source file for VNAs, Noise acquisitions and fit initializations. By checking the permanent button you make your selection persistent across eventual reboot of the client application.
+      </div>
+        <div class="modal-body" style="padding:40px 50px;">
+          <div id = "source-files-list"></div>
+          <br>
+          <span>
+            <label data-toggle="tooltip" title="Name of the source group"> Group </label>
+            <input style = "width: 100%; clear: both; margin-right:10px;"
+            placeholder="Existing or new group..." type="text" name="group_source" id = 'source-file-group' list="group_list_set" value ='' >
+            <datalist id="group_list_set">
+              {%for group in source_group_set%}
+                <option value="{{group}}">
+              {%endfor%}
+            </datalist>
+          </span>
+          <div style = "margin-top:20px;">
+          Permanent:
 
-        <div>
-          <div class="panel panel-default", id = 'selected_panel-files'>
-            <div class="panel-heading">
-              <h4 class="panel-title">
-                <a class="toggle" data-toggle="collapse" href="#collapse-selected_panel-files"> Selected Files </a>
-                <span style="float:right" id ="file_sel_num"><span>
-              </h4>
-            </div>
-
-            <div id="collapse-selected_panel-files" class="panel-collapse collapse">
-              <div class="panel-body", id = "files-selected_panel-analysis-body">
-
-                <table class="table table-striped">
-                  <thead>
-                    <tr>
-                      <th scope="col">#</th>
-                      <th>File selected</th>
-                    </tr>
-                  </thead>
-
-                  <tbody id="selected_files_list"></tbody>
-                </table>
-
-              </div>
-            </div>
+          <input type="checkbox" id = 'permanent_source_checkbox' style = "margin-left:20px"></input>
           </div>
+
+        </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success btn-default" onclick="add_source_file()"><span class="glyphicon glyphicon-plus"></span> Add</button>
+        <button type="submit" class="btn btn-danger btn-default" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="source-manage-modal" role="dialog">
+  <div class="modal-dialog" style = "width: auto; max-width: 1060px;">
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header" style="padding:20px 20px;">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4><span class="glyphicon glyphicon-tags" style='margin-right:10px'></span> Manage source files</h4>
+        Source file management. The table below represent your source file group. In this window you can visualize, remove or check the files.
+        The source files are used to initialize fits or measurement.
+        To add files to this category, drag and drop the links from the explorer on the button next to the one just pressed. Measure displaying the remove! button are marked as permanent.
+      </div>
+        <div class="modal-body" style="padding:40px 50px;">
+          <table class="table" id = "source-file-table">
+            <thead>
+              <tr>
+                <th>Group</th>
+                <th>Path</th>
+                <th>Kind</th>
+                <th>Remove</th>
+
+              </tr>
+            </thead>
+
+            <tbody id="source-file-body">
+              {%for i in range(source_files|length) %}
+              <tr>
+                <td word-break:break-all> {{source_files[i]['source_group']}} </td>
+                <td word-break:break-all> {{source_files[i]['source_path']}} </td>
+                <td > {{source_files[i]['source_kind']}} </td>
+                <td >
+                  {% if source_files[i]['source_perm'] %}
+                   <input type="submit" class="btn btn-secondary" value = "Remove!"> </input>
+                  {%else%}
+                  <input type="submit" class="btn btn-secondary" value = "Remove"> </input>
+                  {%endif%}
+                </td>
+              </tr>
+              {%endfor%}
+
+            </tbody>
+          </table>
         </div>
 
+    </div>
+  </div>
+</div>
 
+<script>
+  // Love this
+  ( function($) {
+    $(document).ready(function() {
+      var collapsedGroups = {};
+      var source_table_json = JSON.parse('{{source_files | tojson}}');
+      var table = $('#source-file-table').DataTable({
+          order: [[0, 'asc']],
+          rowGroup: {
+            // Uses the 'row group' plugin
+            dataSrc: 0,
+            startRender: function (rows, group) {
+              var collapsed = !!collapsedGroups[group];
 
+              rows.nodes().each(function (r) {
+                r.style.display = collapsed ? '' : 'none'; // Inverted to start with ollapsed rows
+              });
+              return $('<tr/>')
+              .append('<td colspan="4">' + group + ' (' + rows.count() + ') <input type="submit" class="btn btn-secondary" id = "remove_group_source" value = "Remove group" style=\'float:right\'> </input></td>')
+              .attr('data-name', group)
+              .toggleClass('collapsed', collapsed);
+            }
+          }
+      });
+
+      $('#source-file-table tbody').on('click', 'tr.group-start', function () {
+        var name = $(this).data('name');
+        collapsedGroups[name] = !collapsedGroups[name];
+        table.draw(false);
+      });
+
+      } );
+    } ) ( jQuery );
+
+</script>
+
+<!-- SELECTED FILE PART -->
+<div class="modal fade" id="selected-files-modal" role="dialog">
+  <div class="modal-dialog" style = "width: auto; max-width: 960px;">
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header" style="padding:20px 20px;">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4><span class="glyphicon glyphicon-plus"></span> Selected files</h4>
+        List of the files selected for operations
+      </div>
+        <div class="modal-body" style="padding:40px 50px; ">
+
+          <table class="table" id = "selected_files-table">
+            <thead>
+              <tr>
+                <th data-field="id">#</th>
+                <th data-field="name" data-sortable="true">File selected</th>
+              </tr>
+            </thead>
+
+            <tbody id="selected_files_list"></tbody>
+          </table>
+
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- PLOT DISPLAY PART -->
 
@@ -191,6 +337,10 @@
 </script>
 {% endfor %}
 <script>
+
+  function open_selected_modal(){
+    $("#selected-files-modal").modal()
+  }
   ( function($) {
     $(document).ready(function() {
       $('#files').DataTable({select: true});
@@ -202,6 +352,16 @@
       $('#folders').DataTable({select: true});
     } );
   } ) ( jQuery );
+
+  // ( function($) {
+  //   $(document).ready(function() {
+  //     $('#selected_files-table').DataTable({select: true});
+  //   } );
+  // } ) ( jQuery );
+
+  //var filedt = $('#selected_files-table').DataTable({select: true});
+  // TODO: cannot initialize a Datatable object within the file modal.
+  // There is some coding needed for the updating of this.
 </script>
 
 <!-- ANALYSIS PART -->
@@ -377,7 +537,69 @@
           <div id="collapse-fitting" class="panel-collapse collapse">
             <div class="panel-body">
               <div id = "fitting-analysis-body" style = "margin:10px">
-              Fitting options
+
+              <!-- Fitting options -->
+
+              <div>
+                <h4>Initialization options</h4>
+                <hr>
+              </div>
+              <div style="width: 100%; display: table;">
+                <div style="display: table-row" >
+
+                  <div style="width: 50%; display: table-cell; padding:10px;">
+                    <div class="panel panel-default">
+                      <div class="panel-heading">
+                        <h4 class="panel-title">
+                          <input type="checkbox" id = "fit-thr-chk", onclick = "diasble_init_fit_panel(this)">
+                          Threshold
+                          <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+                          title="Set a theshold relative to the maximum absolute value of the S21 derivative (excluding LO glitch) and use the peakutils python package to determine the position of other peaks"></a>
+                        </h4>
+                      </div>
+
+                      <div class="panel-body" id = "fit-thr-opt">
+                        <label data-toggle="tooltip" title="Threshold for peakfinder algorithm."> Threshold </label>
+                        <input style = "width: 100%; clear: both; margin-bottom:10px;" type="text" name="threshold" value="0.5", id = 'fit-opt-thr'><br>
+                        <label data-toggle="tooltip" title="Decimation factor to apply before initializing the peaks. Won't be inherited by actual fitting."> Smoothing </label>
+                        <input style = "width: 100%; clear: both; margin-bottom:10px;" type="text" name="smoothing" value="0", id = 'fit-opt-smooth-thr'><br>
+                        <label data-toggle="tooltip" title="Minimum peak distance and fit init range in Hz"> Peak width </label>
+                        <input style = "width: 100%; clear: both; margin-bottom:10px;" type="text" name="smoothing" value="20000", id = 'fit-opt-width'><br>
+
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="width: 50%; display: table-cell; padding:10px;">
+                    <div class="panel panel-default">
+                      <div class="panel-heading">
+                        <h4 class="panel-title">
+                          <input type="checkbox" id = "fit-alt-chk" onclick = "diasble_init_fit_panel(this)">
+                          Alt method
+                          <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+                          title="Use an alternative method for initializing the peaks based on the number of peaks"></a>
+                        </h4>
+                      </div>
+
+                      <div class="panel-body", id = "fit-alt-opt">
+                        <label data-toggle="tooltip" title="Expected number of resonator. The function may find less resonators."> Number of peaks </label>
+                        <input style = "width: 100%; clear: both; margin-bottom:10px;" type="text" name="threshold" value="1", id = 'fit-opt-npeaks'><br>
+                        <label data-toggle="tooltip" title="Decimation factor to apply before initializing the peaks. Won't be inherited by actual fitting."> Smoothing </label>
+                        <input style = "width: 100%; clear: both; margin-bottom:10px;" type="text" name="smoothing" value="0", id = 'fit-opt-smooth-alt'><br>
+                        <label data-toggle="tooltip" title="Exclude peaks which have an asymmetry parameter bigger than"> Asymmetry cutoff (eclude >) </label>
+                        <input style = "width: 100%; clear: both; margin-bottom:10px;" type="text" name="smoothing" value="10", id = 'fit-opt-A'><br>
+                        <label data-toggle="tooltip" title="Exclude peaks which have a Qr parameter smaller than"> Qr cutoff (exclude <) </label>
+                        <input style = "width: 100%; clear: both; margin-bottom:10px;" type="text" name="smoothing" value="4e3", id = 'fit-opt-qr'><br>
+                        <label data-toggle="tooltip" title="Exclude peaks which have a depth in dB smaller than"> Db depth cutoff (exclude <) </label>
+                        <input style = "width: 100%; clear: both; margin-bottom:10px;" type="text" name="smoothing" value="1", id = 'fit-opt-depth'><br>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- END Fitting options -->
+
               </div>
 
               <!-- Files display -->

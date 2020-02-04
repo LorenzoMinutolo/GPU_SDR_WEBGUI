@@ -2,7 +2,7 @@ var socket = io.connect('http://' + document.domain + ':' + location.port);
 var selected_files_list = document.getElementById("selected_files_list")
 
 $(document).ready(function(){
-  console.log("loaded");
+  console.log("loading selecte files from database...");
   request_update_selected_files()
 });
 
@@ -17,11 +17,13 @@ socket.on( 'update_selection', function( msg ) {
   console.log(JSON.parse(msg)['files'].join(", "))
   var file_list = JSON.parse(msg)['files']
   var text = ""
+
   for (i = 0; i < file_list.length; i++) {
     text += "<tr>" +"<th scope=\"row\">"+ i +"</th>" + "<th>" + file_list[i] + "</th>" + "</tr>";
   }
+
   document.getElementById('selected_files_list').innerHTML = text
-  document.getElementById('file_sel_num').innerHTML = "Selected files: " + file_list.length
+  document.getElementById('selected-files-btn').value = "Selected files (" + file_list.length + ")"
 })
 
 function selected_file_op(chk){
@@ -51,6 +53,8 @@ function clear_selected(){
   socket.emit('explore_clear_selection', {});
   location.reload();
 }
+
+
 
 function config_excluded_files(jdict){
   var text = ''
@@ -111,4 +115,62 @@ socket.on( 'analyze_config_modal', function( msg ) {
 function configure_analyze_modal() {
   //request configuration of the modal, no needs of sending the file list as it's server managed
   socket.emit('analysis_modal_config', {});
+}
+
+function diasble_init_fit_panel(sel){
+  var thr = document.getElementById("fit-thr-chk")
+  var alt = document.getElementById("fit-alt-chk")
+  if (sel.id == "fit-thr-chk"){
+    alt.checked = false;
+    thr.checked = true;
+    $('#fit-alt-opt :input').attr('disabled', true);
+    $('#fit-thr-opt :input').attr('disabled', false);
+  }else{
+    thr.checked = false;
+    alt.checked = true;
+    $('#fit-thr-opt :input').attr('disabled', true);
+    $('#fit-alt-opt :input').attr('disabled', false);
+  }
+}
+
+$(document).ready(function(){
+  console.log("loading dfault analysis options...");
+  diasble_init_fit_panel(document.getElementById("fit-thr-chk"))
+});
+
+function allowDrop(ev) {
+  ev.preventDefault();
+}
+
+function dragEventHandler(theEvent) {
+    theEvent.dataTransfer.setData("Text", theEvent.target.id);
+    console.log(theEvent.target.id)
+}
+
+var id_add_source = null
+var item_add_source = null
+var source_path = null
+
+function drop_link(event) {
+  id_add_source = event.dataTransfer.getData("Text");
+  item_add_source = document.getElementById(id_add_source)
+  source_path = currenpath + item_add_source.innerHTML
+  console.log(source_path)
+  if(source_path.substr(source_path.length - 3) == ".h5"){
+    var text = "File: <b>" + item_add_source.innerHTML +"</b> will be added."
+  }else{
+    var text = "All files in the <b>" + item_add_source.innerHTML +"</b> folder will be added (non recursive)"
+  }
+  document.getElementById("source-files-list").innerHTML = text
+  $("#source-files-modal").modal('show');
+}
+
+function add_source_file(event) {
+  var checked = document.getElementById("permanent_source_checkbox").checked
+  var group_name = document.getElementById("source-file-group").value
+  socket.emit('explore_add_source', {'file':source_path, 'permanent':checked, 'group':group_name});
+  id_add_source = null
+  item_add_source = null
+  source_path = null
+  location.reload();
 }
