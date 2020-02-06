@@ -6,6 +6,8 @@
 <script>
   var currenpath = "{{simple_path }}"
   var file_list = []
+  var source_table_json = JSON.parse('{{source_files | tojson}}');
+  var analysis_config = {}
 </script>
 
 <script type="text/javascript" src={{ url_for('static', filename = 'js/explore.js') }}></script>
@@ -233,7 +235,7 @@
   ( function($) {
     $(document).ready(function() {
       var collapsedGroups = {};
-      //var source_table_json = JSON.parse('{{source_files | tojson}}');
+      //
       var table = $('#source-file-table').DataTable({
           //data:source_table_json,
           order: [[0, 'asc']],
@@ -550,13 +552,16 @@
               <!-- Fitting options -->
 
               <div>
-                <h4>Initialization options</h4>
+                <h4>Initialization options
+                <button type="submit" class="btn btn-link" onclick="init_test_run()" style = "float:right"><span class="glyphicon glyphicon-fire"></span> Init testrun</button>
+                </h4>
                 <hr>
               </div>
               <div style="width: 100%; display: table;">
                 <div style="display: table-row" >
 
                   <div style="width: 50%; display: table-cell; padding:10px;">
+
                     <div class="panel panel-default">
                       <div class="panel-heading">
                         <h4 class="panel-title">
@@ -577,6 +582,34 @@
 
                       </div>
                     </div>
+
+                    <div class="panel panel-default">
+                      <div class="panel-heading">
+                        <h4 class="panel-title">
+                          <input type="checkbox" id = "fit-source-chk", onclick = "diasble_init_fit_panel(this)">
+                          From file
+                          <a class="glyphicon glyphicon-question-sign" href="#" data-toggle="tooltip" style = "margin-left:10px"
+                          title="Initialize fitting from an existing VNA file designed as source"></a>
+                        </h4>
+                      </div>
+
+                      <div class="panel-body" id = "fit-source-opt">
+                        <label for="sel_group_fit">Select source group:</label>
+                        <select class="form-control" id= "sel_group_fit" onchange ="show_fit_sourcefiles(this)">
+                          <option value="" selected="selected">Select a source group...</option>
+                          {%for group in source_group_set%}
+                            <option value="{{group}}">{{group}}</option>
+                          {%endfor%}
+                        </select>
+                        <label for="sel_source_fit">VNA Measure file</label>
+                        <select class="form-control" id= "sel_source_fit">
+
+                        </select>
+                      </div>
+                    </div>
+
+
+
                   </div>
 
                   <div style="width: 50%; display: table-cell; padding:10px;">
@@ -605,6 +638,11 @@
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <h4>Fitting options</h4>
+                <hr>
               </div>
 
               <!-- END Fitting options -->

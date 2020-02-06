@@ -14,7 +14,7 @@ from flask import g
 import ntpath
 from models import user_files_selected, user_files_source
 from app import u, check_connection
-
+from tmp_management import get_tmp_folder
 
 @app.before_request
 def before_request():
@@ -36,6 +36,22 @@ def index():
         worker_range = range(len(worker_status['name']))
     )
 
+import base64
+
+@app.route('/tmp_viewer')
+@login_required
+def tmp_viewer():
+    search_sting = os.path.join(get_tmp_folder(),"*.png")
+    filepaths_png = glob.glob(search_sting)
+    filepaths_png = [os.path.relpath(path,os.getcwd()) for path in filepaths_png]
+    basename_png = [os.path.basename(path) for path in filepaths_png]
+    png_data = []
+    for path in filepaths_png:
+        with open(path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+            png_data.append(encoded_string.decode("utf-8"))
+    print(filepaths_png)
+    return render_template('tmp_viewer.html', title='temporary files', png_data = png_data, filepaths_png = basename_png)
 
 @app.route('/index_about')
 @login_required

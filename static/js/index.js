@@ -1,13 +1,12 @@
 var socket = io.connect('http://' + document.domain + ':' + location.port);
 // I can use this method because the server backend has a lock
-var interval_update_jobs = setInterval(request_jobs_update, 1000);
-var interval_update_measure = setInterval(request_measure_update, 731);
 
 var old_job_table = [{"":0}]
 var old_meas_table = [{"":0}]
 
+var disable_notifications = true
 
-$(document).ready(function(){
+jQuery(document).ready(function(){
     $("#submit_button_worker").click(function(){
     $("#modal_add_worker").modal();
   });
@@ -49,20 +48,6 @@ socket.on( 'creation_respone', function( msg ) {
     alert("Cannot create workers")
   }
 })
-
-function request_jobs_update(){
-  //console.log('requesting jobs update...')
-  socket.emit('jobs_update', {
-    update:true
-  });
-}
-
-  function request_measure_update(){
-    //console.log('requesting measure update...')
-    socket.emit('measure_update', {
-      update:true
-    });
-  }
 
 function array2string(arr){
   var str = "x"

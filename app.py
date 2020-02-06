@@ -20,6 +20,7 @@ INFO = shared_var_manager.dict()
 # bookeeping of the usrpgpu sevrer connection
 INFO['SERVER_CONNECTED'] = False
 INFO['MEASURE_IN_PROGRESS'] = ""
+INFO['CLEAR_CONTEXT_WEB'] = True
 connection_lock = Lock()
 measure_lock = Lock()
 
@@ -102,12 +103,19 @@ from routes import *
 # This has to be imported last
 from handlers import *
 
-from models import clear_all_files_selected
+# Extra handler to manage lighter cookies
+@socketio.on('clear_context')
+def clear_context_once(msg):
+    socketio.emit('clear_context',json.dumps({'clear':int(INFO['CLEAR_CONTEXT_WEB'])}))
+    if INFO['CLEAR_CONTEXT_WEB']:
+        INFO['CLEAR_CONTEXT_WEB'] = False
+
+from models import clear_all_files_selected, clear_all_files_source
+
+from tmp_management import clean_full_temporary_folder
 
 if __name__ == '__main__':
     #app.run(debug=True)
-
-    # Clear the session
 
     job_connected = job_manager.connect()
     if not job_connected:
@@ -139,6 +147,11 @@ if __name__ == '__main__':
         except OsError:
             print("Cannot create path.")
             exit()
+
+    # Clear the session
+    clean_full_temporary_folder()
     clear_all_files_selected()
+    clear_all_files_source()
+
     print("Running application on addr: %s"%APP_ADDR)
     socketio.run(app,host= APP_ADDR, port = "5000") #port 33 and sudo for running on local network?

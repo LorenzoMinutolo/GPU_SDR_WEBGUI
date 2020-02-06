@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Temporary plot display</h2>
+<div style="width: 100%">
+{% for i in range(filepaths_png|length) %}
+<img src="data:image/png;base64,{{png_data[i]}}" alt="{{filepaths_png[i]}}" style = "width:33%">
+{% endfor %}
+</div>
+{% endblock %}

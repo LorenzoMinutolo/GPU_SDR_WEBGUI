@@ -10,6 +10,7 @@ from diagnostic_text import *
 from models import filename_to_abs_path, check_db_measure
 from multiprocessing import Lock
 import pprint
+from .analysis_helper import *
 
 class Analysis_Config(object):
     '''
@@ -329,8 +330,8 @@ class Analysis_Config(object):
             '''
 
         # at this point the config is done
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(self.config)
+        #pp = pprint.PrettyPrinter(indent=4)
+        #pp.pprint(self.config)
 
     def build_job_queue(self, web_request):
         '''

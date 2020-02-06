@@ -1,7 +1,7 @@
 var socket = io.connect('http://' + document.domain + ':' + location.port);
 var selected_files_list = document.getElementById("selected_files_list")
 
-$(document).ready(function(){
+jQuery(document).ready(function(){
   console.log("loading selecte files from database...");
   request_update_selected_files()
 });
@@ -103,13 +103,16 @@ function config_single_analysis_headers(jdict){
 
 socket.on( 'analyze_config_modal', function( msg ) {
   //apply the configuration
-  var config = JSON.parse(msg)
-  console.log(config)
-  config_excluded_files(config)
-  config_single_analysis_headers(config['single'])
+  analysis_config = JSON.parse(msg)
+  //console.log(config)
+  config_excluded_files(analysis_config)
+  config_single_analysis_headers(analysis_config['single'])
 
   //finally activate the modal
-  $('#analysis-modal').modal('show');
+  setTimeout(function(){
+    jQuery('#analysis-modal').modal('show');
+  }, 300)
+
 })
 
 function configure_analyze_modal() {
@@ -118,22 +121,97 @@ function configure_analyze_modal() {
 }
 
 function diasble_init_fit_panel(sel){
+  // Manage the fit initialization options
   var thr = document.getElementById("fit-thr-chk")
   var alt = document.getElementById("fit-alt-chk")
+  var src = document.getElementById("fit-source-chk")
   if (sel.id == "fit-thr-chk"){
+    src.checked = false;
     alt.checked = false;
     thr.checked = true;
-    $('#fit-alt-opt :input').attr('disabled', true);
-    $('#fit-thr-opt :input').attr('disabled', false);
-  }else{
+    jQuery('#fit-alt-opt :input').attr('disabled', true);
+    jQuery('#sel_group_fit').attr('disabled', true);
+    jQuery('#sel_source_fit').attr('disabled', true);
+    jQuery('#fit-thr-opt :input').attr('disabled', false);
+  }else if (sel.id == "fit-alt-chk"){
     thr.checked = false;
+    src.checked = false;
     alt.checked = true;
-    $('#fit-thr-opt :input').attr('disabled', true);
-    $('#fit-alt-opt :input').attr('disabled', false);
+    jQuery('#sel_group_fit').attr('disabled', true);
+    jQuery('#sel_source_fit').attr('disabled', true);
+    jQuery('#fit-thr-opt :input').attr('disabled', true);
+    jQuery('#fit-alt-opt :input').attr('disabled', false);
+  } else {
+    thr.checked = false;
+    src.checked = true;
+    alt.checked = false;
+    jQuery('#sel_group_fit').attr('disabled', false);
+    jQuery('#sel_source_fit').attr('disabled', false);
+    jQuery('#fit-thr-opt :input').attr('disabled', true);
+    jQuery('#fit-alt-opt :input').attr('disabled', true);
+  }
+}
+function show_fit_sourcefiles(option){
+  group = option.options[option.selectedIndex].text;
+  text = ''
+  for (i = 0; i < source_table_json.length; i++) {
+    if(source_table_json[i].source_group == group){
+      if(source_table_json[i].source_kind == 'VNA'){
+        text += '<option value = "'+source_table_json[i].source_path + '">' + source_table_json[i].source_path + '</option>'
+      }
+    }
+  }
+  document.getElementById("sel_source_fit").innerHTML = text
+}
+
+function collect_init_fit_params(){
+  var thr = document.getElementById("fit-thr-chk")
+  var alt = document.getElementById("fit-alt-chk")
+  var src = document.getElementById("fit-source-chk")
+  if(thr.checked){
+    var threshold = document.getElementById("fit-opt-thr").value
+    var smoothing = document.getElementById("fit-opt-smooth-thr").value
+    var width = document.getElementById("fit-opt-width").value
+    return {
+      'threshold':threshold,
+      'smoothing':smoothing,
+      'width':width
+    }
+  }else if (src.checked){
+    var src = document.getElementById("sel_source_fit")
+    try{
+      var vna_file = src.options[src.selectedIndex].text;
+      return {'vna_file':vna_file}
+    }catch(err){
+      alert("Please select a source file first")
+      return false
+    }
+  }else{
+    var npeaks = document.getElementById("fit-opt-npeaks").value
+    var smoothing = document.getElementById("fit-opt-smooth-alt").value
+    var a_cutoff = document.getElementById("fit-opt-A").value
+    var q_cutoff = document.getElementById("fit-opt-qr").value
+    var mag_cutoff = document.getElementById("fit-opt-depth").value
+    return {
+      'npeaks':npeaks,
+      'smoothing':smoothing,
+      'a_cutoff':a_cutoff,
+      'q_cutoff':q_cutoff,
+      'mag_cutoff':mag_cutoff,
+    }
+  }
+}
+function init_test_run(){
+  init_params = collect_init_fit_params()
+  if(init_params){
+    socket.emit('init_test_run', {'params':init_params, files:analysis_config['single']['fitting']['files']});
+    // Emit a test run request, enqueue measure and return the name of the last
+    // check if the queues are empty? execute in local? with thread control?(pretty cool)?
+    // block until the socket push is received
   }
 }
 
-$(document).ready(function(){
+jQuery(document).ready(function(){
   console.log("loading dfault analysis options...");
   diasble_init_fit_panel(document.getElementById("fit-thr-chk"))
 });
