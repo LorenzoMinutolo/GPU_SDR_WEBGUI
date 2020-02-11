@@ -9,7 +9,7 @@ from app import socketio, check_connection, measure_manager, job_manager, app
 from tmp_management import clean_tmp_folder
 from diagnostic_text import *
 from models import add_file_selected, user_files_selected, remove_file_selected, clear_user_file_selected, add_file_source, consolidate_sources
-from models import remove_source_group, clear_user_file_source, remove_file_source, measure_path_from_name
+from models import remove_source_group, clear_user_file_source, remove_file_source, measure_path_from_name, measure_path_response, get_associated_plots, remove_path_selected
 from .explore_helper import *
 import datetime
 
@@ -31,19 +31,22 @@ def remove_from_selection(msg):
     Remove file from selected list
     '''
     old_list = user_files_selected()
-    if msg['file'] in old_list:
-        ret = remove_file_selected(msg['file'])
+    filepath = measure_path_from_name(msg['file'])
+    if filepath in old_list:
+
+        ret = remove_file_selected(filepath)
         old_list = user_files_selected()
         socketio.emit('update_selection',json.dumps({'files':old_list,'err':int(ret)}))
     else:
-        print_warning('cannot remove %s from selected list, not found')
+        print_warning('cannot remove %s from selected list, not found'%filepath)
 
 @socketio.on('add_to_selection')
 def add_to_selection(msg):
     '''
     Add file from selected list
     '''
-    ret = add_file_selected(msg['file'])
+    filepath = measure_path_from_name(msg['file'])
+    ret = add_file_selected(filepath)
     old_list = user_files_selected()
     socketio.emit('update_selection',json.dumps({'files':old_list,'err':int(ret)}))
 
@@ -51,18 +54,65 @@ def add_to_selection(msg):
 def send_selection_update(msg):
     socketio.emit('update_selection',json.dumps({'files':user_files_selected(),'err':int(1)}))
 
+
+@socketio.on('request_selection_file_list')
+def send_selection_update_file_list(msg):
+    folders_req = msg['folders']
+    dbs = []
+    plot = []
+    files = []
+    sizes = []
+    kinds = []
+    parent= []
+    for folder in folders_req:
+        dbs_, plot_, files_, sizes_, kinds_, parent_ = measure_path_response(folder,msg['recursive'])
+        parent += parent_
+        dbs+=dbs_
+        plot+=plot_
+        files+=files_
+        sizes+=sizes_
+        kinds+=kinds_
+    ret = list(zip(dbs, plot, files, sizes, kinds, parent))
+    socketio.emit('update_selection_file_list',json.dumps({'items':ret}))
+
+@socketio.on('request_selection_plot_list')
+def send_selection_update_file_list(msg):
+    file_req = msg['file']
+    path = measure_path_from_name(file_req)
+    plots = get_associated_plots([path])['plots'][0]
+    ret = []
+    for i in range(len(plots['path'])):
+        ret.append([
+            plots['path'][i],
+            plots['kind'][i],
+            plots['timestamp'][i],
+            plots['comment'][i],
+        ])
+    # print(ret)
+
+    socketio.emit('update_selection_plot_list',json.dumps({'items':ret}))
+
+
+
 @socketio.on('add_to_selection_from_folder')
 def select_from_folder(msg):
     '''
     Select all the files in a folder.
     '''
-    relative_path = os.path.join(msg['path'], msg['folder'])
+    #relative_path = os.path.join(msg['path'], msg['folder'])
+    relative_path = msg['folder']
     ret = True
     for root, dirs, files in os.walk(os.path.join(app.config["GLOBAL_MEASURES_PATH"],relative_path), topdown=False):
         for name in files:
             if name.endswith('.h5'):
-                ret = ret and add_file_selected(name)
+                ret = ret and add_file_selected(measure_path_from_name(name))
     socketio.emit('update_selection',json.dumps({'files':user_files_selected(),'err':int(ret)}))
+
+@socketio.on('remove_selection_from_folder')
+def remove_select_from_folder(msg):
+    ret = remove_path_selected(msg['folder'])
+    socketio.emit('update_selection',json.dumps({'files':user_files_selected(),'err':int(ret)}))
+
 
 @socketio.on('analysis_modal_config')
 def define_possible_analysis(msg):

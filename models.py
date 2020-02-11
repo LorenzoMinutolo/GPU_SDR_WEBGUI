@@ -10,6 +10,7 @@ from app import login
 from flask_login import current_user
 from diagnostic_text import *
 from multiprocessing import RLock, Manager
+from pathlib import Path
 
 commit_manager = Manager()
 commit_lock = commit_manager.RLock() # Recursive lock because db.session.commit() is a non-thread-safe operation
@@ -158,6 +159,73 @@ def add_measure_entry(relative_path, started_time, kind = "Unknown", comment = "
         commit_lock.release()
     else:
         print_warning("Measure %s is waiting database commit"%relative_path)
+
+def remove_measue_entry():
+    '''
+    Remove a measure from file and db
+    '''
+
+def move_measure_entry():
+    '''
+    Move a measure entry
+    '''
+
+def measure_path_response(folder, recursive = False):
+    '''
+    Return all the acual files, matched against the db present in the folder with all the related plots
+    '''
+    def what_kind(filename):
+        meas_type = u.get_meas_type(filename)[0] ## TODO: for now just returns the first meas type
+        return meas_type
+
+    def what_size(filename):
+        filesize_MB = os.path.getsize(filename) >> 20
+        if filesize_MB >= 1000:
+            return "%.1f GB"%(filesize_MB/1000.)
+        elif filesize_MB < 1:
+            return "< 1 MB"
+        else:
+            return "%.1f MB"%(filesize_MB)
+    # gather the files in the folder
+    files = []
+    sizes = []
+    kinds = []
+    dbs = []
+    parents = []
+    all_plots = []
+    folder += "/"
+    #print(folder)
+    real_path = os.path.join(app.config["GLOBAL_MEASURES_PATH"],folder)
+    #print('scanning ' + real_path)
+    if recursive:
+        target_list = Path(real_path).rglob('*.h5')
+    else:
+        target_list = glob.glob(real_path+"*.h5")
+
+    for file in target_list:
+        real_name = os.path.join(real_path,file)
+        db_name = os.path.relpath(file,app.config["GLOBAL_MEASURES_PATH"])
+        files.append(os.path.basename(file))
+        sizes.append(what_size(real_name))
+        kinds.append(what_kind(real_name))
+        parents.append(os.path.dirname(db_name))
+        try:
+            #print("checking against: "+ db_name)
+            Measure.query.filter(Measure.relative_path == db_name).one()
+            db = 1
+        except NoResultFound:
+            db = 0
+        except MultipleResultsFound:
+            db = 0
+
+        dbs.append(db)
+        #print(get_associated_plots([db_name]))
+        p = int(len(get_associated_plots([db_name])['plots'][0]['path']) > 0)
+        all_plots.append(p)
+
+    return dbs, all_plots, files, sizes, kinds, parents
+
+    # match against the database
 
 class Plot(db.Model):
     __tablename__ = 'Plot'
@@ -562,6 +630,22 @@ def add_file_selected(path):
     else:
         print_warning("Cannot add %s, on tmp files of user %s. Already present"%(path,author))
         return False
+
+def remove_path_selected(path):
+    '''
+    Remove all files matching a path from selected files
+    '''
+    global commit_lock
+    counter = 0
+    results = Tmp_files.query.filter(Tmp_files.measure.like("%"+path+"%")).all()
+    print("Removing %d tmp file links from path %s..."%(len(results),path))
+    commit_lock.acquire()
+    for x in results:
+        db.session.delete(x)
+        counter+=1
+    db.session.commit()
+    commit_lock.release()
+    return 1 # for now
 
 def remove_file_selected(path):
     '''

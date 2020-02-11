@@ -57,7 +57,7 @@ socket.on( 'update_job_resopnse', function( msg ) {
   }else{
     notify = !disable_notifications
   }
-  console.log(notification_expired)
+  //console.log(notification_expired)
   //console.log('notify: '+notify)
   var info = JSON.parse(msg)
   if(notify){

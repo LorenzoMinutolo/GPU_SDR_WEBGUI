@@ -2,7 +2,7 @@ from flask import render_template,flash, redirect,url_for,render_template_string
 from app import app,db,job_manager
 from forms import LoginForm, JustAPlaceholder, SearchForm,RegistrationForm
 from flask_login import current_user, login_user
-from models import User, Plot, get_associated_plots
+from models import User, Plot, get_associated_plots,user_files_selected
 from flask_login import login_required
 from flask import request, jsonify
 from werkzeug.urls import url_parse
@@ -12,9 +12,11 @@ import glob,os
 import json
 from flask import g
 import ntpath
+from pathlib import Path
 from models import user_files_selected, user_files_source
 from app import u, check_connection
 from tmp_management import get_tmp_folder
+import base64
 
 @app.before_request
 def before_request():
@@ -22,6 +24,10 @@ def before_request():
         current_user.last_seen = datetime.utcnow()
         db.session.commit()
         g.search_form = SearchForm()
+
+@app.errorhandler(404)
+def page_not_found(error):
+   return render_template('404.html', title = '404'), 404
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
@@ -36,7 +42,122 @@ def index():
         worker_range = range(len(worker_status['name']))
     )
 
-import base64
+def split_all(path):
+    folders = []
+    while 1:
+        path, folder = os.path.split(path)
+
+        if folder != "":
+            folders.append(folder)
+        else:
+            if path != "":
+                folders.append(path)
+
+            break
+
+    folders.reverse()
+    return folders
+
+def get_folder_struct(path):
+    '''
+    Build the folder structure and returns a dictionary with the proper content.
+    Arguments:
+    '''
+
+    # Get structures
+    folder_nodes = [x[0] for x in os.walk(app.config['GLOBAL_MEASURES_PATH']) if (x[0].find(".")==-1)]
+    file_counts = [sum([1 for x in Path(y).rglob('*.h5')]) for y in folder_nodes]
+
+    folders_parents = [str(Path(x).parent) for x in folder_nodes]
+
+    file_nodes = [str(x) for x in Path(app.config['GLOBAL_MEASURES_PATH']).rglob("*.h5")]
+    file_parents = [str(Path(x).parent) for x in file_nodes]
+
+
+    folder_kind = ['folder' for i in folder_nodes]
+    file_kind = ['file' for i in file_nodes]
+    fake_count = [-1 for x in range(len(file_kind))]
+    #merge everything
+    kinds = folder_kind + file_kind
+    nodes = folder_nodes + file_nodes
+    parents = folders_parents + file_parents
+    file_counts = file_counts + fake_count
+    #print(len(kinds),len(nodes),len(parents))
+
+    # remove root folder
+    nodes = [os.path.relpath(p,app.config['GLOBAL_MEASURES_PATH']) for p in nodes]
+    parents = [os.path.relpath(p,app.config['GLOBAL_MEASURES_PATH']) for p in parents]
+
+    arg = [{'state':{},'id':nodes[i],'text':"%s (%d)"%(os.path.basename(nodes[i]),file_counts[i]),'parent':parents[i],'li_attr':{'kind':kinds[i]}} for i in range(len(nodes))]
+
+    path_components = split_all(path)
+    for i in range(len(path_components)):
+        if i > 0:
+            path_components[i] = os.path.join(path_components[i-1],path_components[i])
+    print(path_components)
+
+    for i in range(len(arg)):
+        if file_counts[i] == 0:
+            arg[i]['state']['disabled'] = 1
+        if kinds[i] == 'file':
+            arg[i]['state']['hidden'] = 1
+            arg[i]['id'] = os.path.basename(arg[i]['id'])
+            #print(arg[i]['id'])
+        if arg[i]['id'] in path_components:
+            arg[i]['state']['opened'] = 1
+            print(path_components.index(arg[i]['id']), len(path_components) -1)
+            if path_components.index(arg[i]['id']) == len(path_components) -1:
+                arg[i]['state']['selected'] = 1
+
+
+    arg[0]['parent'] = '#'
+    arg[0]['text'] = 'Data root'
+    arg[0]['state']['opened'] = 1
+    return arg
+
+@app.route('/explore', methods=['GET', 'POST'])
+@app.route('/explore/<path:path>', methods=['GET', 'POST'])
+@login_required
+def explore(path = ""):
+
+    if path.endswith(".h5"):
+        return single_file(path)
+
+    # Build the file tree
+    folder_struct = get_folder_struct(path)
+
+    # Compute the source selector
+    source_path, source_kind, source_perm, source_group = user_files_source()
+    source_group_list = list(set(source_group))
+    DL = {
+        'source_path':source_path,
+        'source_kind':source_kind,
+        'source_perm':source_perm,
+        'source_group':source_group,
+        }
+    DataTable_source = [dict(zip(DL,t)) for t in zip(*DL.values())] # how fun
+    return render_template(
+        'explore.html',
+        folder_struct = folder_struct,
+        source_group_set = source_group_list,
+        source_files = DataTable_source,
+        title='Explore',
+    )
+
+@app.route('/plot_serve', methods=['GET', 'POST'])
+@app.route('/plot_serve/<path:path>', methods=['GET', 'POST'])
+@login_required
+def plot_serve(path = ""):
+    current_path = os.path.join(app.config['GLOBAL_MEASURES_PATH'], path)
+    if path.endswith(".png"):
+        print('file requested: %s'%path)
+        return send_from_directory(directory=os.path.dirname(current_path), filename=os.path.basename(path))
+    elif path.endswith(".html"):
+        print('file requested: %s'%path)
+        return send_from_directory(directory=os.path.dirname(current_path), filename=os.path.basename(path))
+    else:
+        abort(404)
+
 
 @app.route('/tmp_viewer')
 @login_required
@@ -229,10 +350,10 @@ def single_file(path = ""):
         )
 
 
-@app.route('/explore', methods=['GET', 'POST'])
-@app.route('/explore/<path:path>', methods=['GET', 'POST'])
+@app.route('/explore_old', methods=['GET', 'POST'])
+@app.route('/explore_old/<path:path>', methods=['GET', 'POST'])
 @login_required
-def explore(path = ""):
+def old_explore(path = ""):
     #current_session.clear()
     #current_session['selected_paths'] = [1,2,3]
     current_path = os.path.join(app.config['GLOBAL_MEASURES_PATH'], path)
@@ -311,7 +432,7 @@ def explore(path = ""):
             'source_group':source_group,
             }
         DataTable_source = [dict(zip(DL,t)) for t in zip(*DL.values())]
-        return render_template('explore.html', title='Explore',
+        return render_template('explore_old.html', title='Explore_ols',
             allfiles = list(zip(files, paths, sizes, kinds)),
             measure_link = measure_link,
             allfolders = list(zip(folder_names, h5num, f_checked)),

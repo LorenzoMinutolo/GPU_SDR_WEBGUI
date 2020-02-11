@@ -1,60 +1,354 @@
 var socket = io.connect('http://' + document.domain + ':' + location.port);
-var selected_files_list = document.getElementById("selected_files_list")
 
-jQuery(document).ready(function(){
-  console.log("loading selecte files from database...");
-  request_update_selected_files()
-});
-
-function request_update_selected_files(){
-  socket.emit('request_selection', {});
+function request_update_selected_files(folders){
+  var checked = document.getElementById("recursive_file_loading_chk").checked
+  socket.emit('request_selection_file_list', {'folders':folders, 'recursive':checked});
 }
 
-socket.on( 'update_selection', function( msg ) {
-  if(parseInt(JSON.parse(msg)['err'])!=1){
-    alert("Error: cannot add a file twice in present implementation")
-  }
-  console.log(JSON.parse(msg)['files'].join(", "))
-  file_list = JSON.parse(msg)['files']
-  var text = ""
+//console.log(data_stuct)
+jQuery_tree('#file_tree').jstree(
+  {
+    'core' : {
+      'data' : data_stuct
+    },
 
-  for (i = 0; i < file_list.length; i++) {
-    text += "<tr>" +"<th scope=\"row\">"+ i +"</th>" + "<th>" + file_list[i] + "</th>" + "</tr>";
+    "search" : {
+        'case_sensitive' : false,
+        'show_only_matches' : true,
+     },
+     'checkbox': {
+      'three_state' : true, // to avoid that fact that checking a node also check others
+      'whole_node' : false,  // to avoid checking the box just clicking the node
+      'tie_selection' : false // for checking without selecting and selecting without checking
+    },
+    "plugins" : ["checkbox","search"]//,"state"
   }
+);
 
-  document.getElementById('selected_files_list').innerHTML = text
-  document.getElementById('selected-files-btn').value = "Selected files (" + file_list.length + ")"
+jQuery_tree('#file_tree').on("check_node.jstree", function(e, data) {
+  var name = data.node.id
+
+  if(name.substr(name.length - 3) !== ".h5"){
+    console.log("adding folder " + name)
+    socket.emit('add_to_selection_from_folder', {'folder':name});
+    console.log("Possible bug! update the page to get the correct checkboxes!!")
+    $(".file_checkbox").filter(function(){
+
+       return true
+    }).prop('checked', true);
+  }
 })
 
-function selected_file_op(chk){
-  console.log("Operating on selection...");
-  if (chk.checked == false){
-    socket.emit('remove_from_selection', {
-      file:chk.value
-    });
+jQuery_tree('#file_tree').on("uncheck_node.jstree", function(e, data) {
+  var name = data.node.id
+  if(name.substr(name.length - 3) !== ".h5"){
+    console.log("removing folder " + name)
+    socket.emit('remove_selection_from_folder', {'folder':name});
+    console.log("Possible bug! update the page to get the correct checkboxes!!")
+    $(".file_checkbox").filter(function(){
+       return true
+    }).prop('checked', false);
+  }
+})
+
+// Link the check box logics for coherence
+jQuery_tree(document).on('click', '.file_checkbox', function(event){
+  var chk = event.target;
+  console.log("jstree op. id node: "+ chk.value);
+  if (chk.checked == true){
+    jQuery_tree('#file_tree').jstree('check_node', chk.value);
   }else{
-    socket.emit('add_to_selection', {
-      file:chk.value
+    jQuery_tree('#file_tree').jstree('uncheck_node', chk.value);
+  }
+});
+
+// listen for event
+jQuery_tree('#file_tree').on('changed.jstree', function (e, data) {
+  var i, j, r = [];
+  for(i = 0, j = data.selected.length; i < j; i++) {
+    r.push(data.instance.get_node(data.selected[i]).id);
+  }
+   // clean the datatable, make a websoket request to populate the datatable
+
+  request_update_selected_files(r)
+})
+
+
+function uncheck_all_tree(){
+  //jQuery_tree('#file_tree').jstree(true).uncheck_all(); // THis method has a bug!!!
+  var jsonNodes = jQuery_tree('#file_tree').jstree(true).get_json('#', { flat: true });
+  jQuery_tree.each(jsonNodes, function (i, val) {
+    jQuery_tree('#file_tree').jstree('uncheck_node', jQuery_tree(val).attr('id'));
+  })
+}
+
+
+var to = false;
+jQuery_tree('#file_tree_search').keyup(function () {
+  if(to) { clearTimeout(to); }
+  to = setTimeout(function () {
+    var v = jQuery_tree('#file_tree_search').val();
+    console.log("Searching for "+v)
+    jQuery_tree('#file_tree').jstree('search', v);
+  }, 250);
+});
+
+function splash(splashDivId, fn, msg)
+{
+    var splashDiv = document.getElementById(splashDivId)
+    splashDiv.style.display = "block";
+    setTimeout(function() {
+       fn(msg)
+       splashDiv.style.display = "none";
+    }, 100);
+
+}
+
+function open_plot_modal(){
+  $("#modal_plot_select").modal('show');
+}
+function open_selected_modal(){
+  $("#selected-files-modal").modal()
+};
+
+( function($) {
+  $(document).ready(function() {
+
+    var t = $('#file_selector_table').DataTable({
+      language: {
+        searchPlaceholder: "Search files...",
+        search: "",
+      }
     });
+
+    function load_datatable_selected_files(msg){
+      var res = JSON.parse(msg)['items']
+      //console.log(res)
+      for (i = 0; i < res.length; i++) {
+        //console.log(res[i])
+        if(parseInt(res[i][0])){
+          var db_icon = '<span class="glyphicon glyphicon-ok"></span>'
+        }else{
+          var db_icon = '<span class="glyphicon glyphicon-remove"></span>'
+        }
+        res[i][0] = db_icon
+        if(parseInt(res[i][1])){
+          var plot_icon = '<button type="submit" class="plot_this btn btn-link glyphicon glyphicon-picture" style="margin:0px; padding:0px" id="show_plot_'+res[i][2]+'"></button>'
+        }else{
+          var plot_icon = '<span class="glyphicon glyphicon-remove"></span>'
+        }
+        res[i][1] = plot_icon
+        //console.log(currently_selected)
+        if(currently_selected.includes(res[i][2])){
+          var current_select_checkbox = '<input class = "file_checkbox" type="checkbox" checked name = "files_selected" value="'+res[i][2]+'">'
+        }else{
+          var current_select_checkbox = '<input class = "file_checkbox" type="checkbox" name = "files_selected" value="'+res[i][2]+'">'
+        }
+        res[i].push(current_select_checkbox)
+        t.rows.add([res[i]])
+        //console.log(x)
+      }
+      t.draw();
+      // Update height of the file explorer to match the <table>
+    }
+
+      socket.on( 'update_selection_file_list', function( msg ) {
+        t.clear()
+        splash('loader', load_datatable_selected_files, msg)
+      })
+      var plot_table = $('#plot_select_table').DataTable({});
+
+      $(document).on('click', '.plot_this', function(event){
+        var plotname = (event.target.id).replace('show_plot_','')
+        console.log("Showing plots for: "+plotname)
+        document.getElementById('plot_measure_name').innerHTML = plotname
+        open_plot_modal()
+        plot_table.clear()
+        console.log("requesting plots...")
+        socket.emit('request_selection_plot_list', {'file':plotname});
+      });
+
+
+      $(document).on('click', '.file_checkbox', function(event){
+        var chk = event.target
+        console.log("Operating on selection...");
+        if (chk.checked == false){
+          socket.emit('remove_from_selection', {
+            file:chk.value
+          });
+        }else{
+          socket.emit('add_to_selection', {
+            file:chk.value
+          });
+        }
+      });
+
+      socket.on( 'update_selection_plot_list', function( msg ) {
+        var res = JSON.parse(msg)['items']
+        for (i = 0; i < res.length; i++) {
+          var split_address = res[i][0].split("/")
+          res[i][0] = '<a href="'+url_plotter+'/'+res[i][0]+'" target=”_blank”>'+split_address[split_address.length -1]+'</a>'
+        }
+        plot_table.rows.add(res)
+        plot_table.draw();
+      })
+
+      var slected_file_datatable = $('#selected_files-table').DataTable({});
+
+      console.log("loading selecte files from database...");
+      socket.emit('request_selection', {});
+
+      socket.on( 'update_selection', function( msg ) {
+        if(parseInt(JSON.parse(msg)['err'])!=1){
+          // alert("Error: cannot add a file twice in present implementation")
+
+        }
+        //console.log(JSON.parse(msg)['files'].join(", "))
+        file_list = JSON.parse(msg)['files']
+
+        // Reset
+        currently_selected = []
+
+        file_list_expanded = []
+        for (i = 0; i < file_list.length; i++) {
+          var splitpath = file_list[i].split("/")
+
+          currently_selected.push(splitpath[splitpath.length - 1])
+
+          file_list_expanded.push([
+            i, splitpath[splitpath.length - 1], (splitpath.slice(0, splitpath.length -1)).join("/")
+          ])
+        }
+        slected_file_datatable.clear()
+        slected_file_datatable.rows.add(file_list_expanded)
+        slected_file_datatable.draw()
+        document.getElementById('selected-files-btn').value = "Selected files (" + file_list.length + ")"
+      })
+
+      $('#clear_selected-file-btn').on('click', function(){
+        console.log("Clearing selected files");
+        socket.emit('explore_clear_selection', {});
+        socket.emit('request_selection', {});
+        // Clear all checkboxes (present and list)
+        $(".file_checkbox").prop("checked", false);
+        uncheck_all_tree()
+
+      });
+
+  } );
+} ) ( jQuery );
+
+function add_source_file_prompt(){
+  //parse modal
+  text = "<b>Files to be added as source:</b><br>"
+  for (i = 0; i < file_list.length; i++) {
+    text += '<span id = "'+ file_list[i].substring(0, file_list[i].length - 3) +'">' + file_list[i] + "</span><br>"
+  }
+  document.getElementById("source-files-list").innerHTML = text
+  $("#source-files-modal").modal('show');
+}
+
+function add_source_file(event) {
+  var checked = document.getElementById("permanent_source_checkbox").checked
+  var group_name = document.getElementById("source-file-group").value
+  for (i = 0; i < file_list.length; i++) {
+    socket.emit('explore_add_source', {'file':file_list[i], 'permanent':checked, 'group':group_name});
   }
 }
 
-function add_folder_op(chk){
-  console.log("Operating on selection from folder...");
-  console.log(chk.value);
-  console.log(currenpath);
-  socket.emit('add_to_selection_from_folder', {
-    folder:chk.value,
-    path:currenpath
-  });
+socket.on( 'explore_add_source_done', function( msg ) {
+  var res = JSON.parse(msg)
+  if(parseInt(res['result']) == 0){
+    document.getElementById(res['file'].substring(0, res['file'].length - 3)).style.color = "red";
+  }else{
+    document.getElementById(res['file'].substring(0, res['file'].length - 3)).style.color = "green";
+  }
+  if(res["file"] == file_list[file_list.length - 1]){
+    setTimeout(function(){
+      alert("Source file update compelte, click ok to refresh.")
+      socket.emit('explore_clear_selection', {});
+      socket.emit('request_selection', {});
+      $(".file_checkbox").prop("checked", false);
+      uncheck_all_tree()
+      location.reload()
+    }, 300)
+  }
+});
+
+
+( function($) {
+  $(document).ready(function() {
+    var collapsedGroups = {};
+    //
+    var table = $('#source-file-table').DataTable({
+        //data:source_table_json,
+        order: [[0, 'asc']],
+        rowGroup: {
+          // Uses the 'row group' plugin
+          dataSrc: 0,
+          startRender: function (rows, group) {
+            var collapsed = !!collapsedGroups[group];
+
+            rows.nodes().each(function (r) {
+              r.style.display = collapsed ? '' : 'none'; // Inverted to start with ollapsed rows
+            });
+            return $('<tr/>')
+            .append('<td colspan="4">' + group + ' (' + rows.count() + ') <input type="submit" class="btn btn-secondary" id = "remove_group_source" value = "Remove group" name = "' + group + '" style=\'float:right\' onclick = "remove_source_group(this)"> </input></td>' )
+            .attr('data-name', group)
+            .toggleClass('collapsed', collapsed);
+          }
+        }
+    });
+    $("#source-file-table").on('click', '.btn-link', function () {
+      $(this).parent().parent().remove();
+    });
+
+    $('#source-file-table tbody').on('click', 'tr.group-start', function () {
+      var name = $(this).data('name');
+      collapsedGroups[name] = !collapsedGroups[name];
+      table.draw(false);
+    });
+
+    } );
+  } ) ( jQuery );
+
+function remove_source_group(btn){
+  if(confirm("Remove every file from source group "+btn.name+" ?")){
+    socket.emit('explore_remove_source', {'group':btn.name});
+    location.reload();
+  }
 }
-function clear_selected(){
-  console.log("Clearing selected files");
-  socket.emit('explore_clear_selection', {});
+function revome_safe_source(btn){
+  if(confirm("Remove permanent source file "+btn.name+" ?")){
+    socket.emit('explore_remove_source', {'file':btn.name});
+  }
+}
+
+function remove_source(btn){
+  socket.emit('explore_remove_source', {'file':btn.name});
+}
+
+function consolidate_source_file(){
+  socket.emit('consolidate_source_files', {});
+}
+
+socket.on( 'consolidate_source_files', function( msg ) {
+  //apply the configuration
+  console.log(JSON.parse(msg))
+  alert('Source files checked, click to refresh.')
   location.reload();
+})
+
+function remove_tmp_source_file(){
+  socket.emit('remove_temporary_source_files', {});
+  location.reload()
 }
 
-
+socket.on( 'remove_temporary_source_files', function( msg ) {
+  //apply the configuration
+  alert('Non permanent source file removed, click to refresh.')
+  location.reload();
+})
 
 function config_excluded_files(jdict){
   var text = ''
@@ -210,79 +504,3 @@ function init_test_run(){
     // block until the socket push is received
   }
 }
-
-jQuery(document).ready(function(){
-  console.log("loading dfault analysis options...");
-  diasble_init_fit_panel(document.getElementById("fit-thr-chk"))
-});
-
-function add_source_file_prompt(){
-  //parse modal
-  text = "<b>Files to be added as source:</b><br>"
-  for (i = 0; i < file_list.length; i++) {
-    text += '<span id = "'+ file_list[i].substring(0, file_list[i].length - 3) +'">' + file_list[i] + "</span><br>"
-  }
-  document.getElementById("source-files-list").innerHTML = text
-  $("#source-files-modal").modal('show');
-}
-
-function add_source_file(event) {
-  var checked = document.getElementById("permanent_source_checkbox").checked
-  var group_name = document.getElementById("source-file-group").value
-  for (i = 0; i < file_list.length; i++) {
-    socket.emit('explore_add_source', {'file':file_list[i], 'permanent':checked, 'group':group_name});
-  }
-}
-
-socket.on( 'explore_add_source_done', function( msg ) {
-  var res = JSON.parse(msg)
-  if(parseInt(res['result']) == 0){
-    document.getElementById(res['file'].substring(0, res['file'].length - 3)).style.color = "red";
-  }else{
-    document.getElementById(res['file'].substring(0, res['file'].length - 3)).style.color = "green";
-  }
-  if(res["file"] == file_list[file_list.length - 1]){
-    setTimeout(function(){
-      alert("Source file update compelte, click ok to refresh.")
-      clear_selected();
-    }, 300)
-  }
-})
-
-function remove_source_group(btn){
-  if(confirm("Remove every file from source group "+btn.name+" ?")){
-    socket.emit('explore_remove_source', {'group':btn.name});
-    location.reload();
-  }
-}
-function revome_safe_source(btn){
-  if(confirm("Remove permanent source file "+btn.name+" ?")){
-    socket.emit('explore_remove_source', {'file':btn.name});
-  }
-}
-
-function remove_source(btn){
-  socket.emit('explore_remove_source', {'file':btn.name});
-}
-
-function consolidate_source_file(){
-  socket.emit('consolidate_source_files', {});
-}
-
-socket.on( 'consolidate_source_files', function( msg ) {
-  //apply the configuration
-  console.log(JSON.parse(msg))
-  alert('Source files checked, click to refresh.')
-  location.reload();
-})
-
-function remove_tmp_source_file(){
-  socket.emit('remove_temporary_source_files', {});
-  location.reload()
-}
-
-socket.on( 'remove_temporary_source_files', function( msg ) {
-  //apply the configuration
-  alert('Non permanent source file removed, click to refresh.')
-  location.reload();
-})
