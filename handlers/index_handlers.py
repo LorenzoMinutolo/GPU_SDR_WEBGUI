@@ -43,3 +43,7 @@ def handle_meas_update(msg, methods=['GET', 'POST']):
         socketio.emit('update_measure_resopnse',response_)
     else:
         print("Not requesting an update?")
+
+@socketio.on('clear_terminated_jobs')
+def clear_terminated_jobs(msg):
+    job_manager.clear_nonactive_joblist()

@@ -58,8 +58,11 @@ function array2string(arr){
   return str;
 }
 
+function clear_terminated_jobs(){
+  socket.emit('clear_terminated_jobs', {});
+}
+
 function loadTable_jobs(tableId, fields, data) {
-    //$ TODO: add color for different status
     var rows = '';
     $.each(data, function(index, item) {
 

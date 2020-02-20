@@ -64,18 +64,6 @@
         <div><p>{{ session.author.username }} did: <b>{{ session.body }}</b></p></div>
         {% endfor %}
 
-        <div class="w-100 bg-warning" style="margin: 10px;"">USRP GUI running in debug mode, TODOs:</div>
-        <li>push to github?</li>
-        <li>add manage database item on the explore page</li>
-        <li>add data settings tab</li>
-        <li>add delete button on plots, measures and folder(!) (admin only)</li>
-        <li>add move buttons on measures and folders</li>
-        <li>move workers to separate left tab (admin only for remove/add)</li>
-        <li>get real data from the hardware</li>
-        <li>server ping latency, async bw test for rt plotting?</li>
-        <li>measure finish notification, measure subfolder mechanism os.path.relpath()</li>
-        <li>analysis and measures queues are not getting rid of old data</li>
-        </div>
         <!-- measures table -->
         <div class="panel panel-default w-100">
           <div class="panel-heading">Measures queue</div>
@@ -101,7 +89,11 @@
 
         <!-- jobs table -->
         <div class="panel panel-default w-100">
-          <div class="panel-heading">Analisys jobs</div>
+          <div class="panel-heading">
+            Analisys jobs
+            <button type="submit" value="clear_job_queue" class="clear", id="clear_job_queue_button" style="float: right;"
+            onclick="clear_terminated_jobs()" data-toggle="tooltip" title="Clear the job list from finished, failed and expired tasks">Clear terminated</button>
+          </div>
           <div class="panel-body">
             <table id="jobs" class="table" style="width:95%">
               <thead>

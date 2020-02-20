@@ -1,11 +1,13 @@
 from flask_table import Table, Col, LinkCol
-from flask import Flask, Markup, request, url_for
+from flask import Flask, Markup, request, url_for, session
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_bootstrap import Bootstrap
 from flask_login import current_user
+from flask_session import Session
+#from flask.ext.session import Session
 
 import json
 import os
@@ -40,7 +42,6 @@ FLASK_APP = "GPU_SDR"
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 GLOBAL_MEASURES_PATH = "/home/lorenzo/Desktop/GPU_SDR/scripts/data/"
-GLOBAL_PLOTS_PATH = "/home/lorenzo/Desktop/GPU_SDR/scripts/plots/"
 # general settings, TOOD will be replaced by file reading
 SECRET_KEY = 'A0Zr348j/3yX R~XHH!1mN]LWX/,?RT'
 REDIS_WORKERS = 4
@@ -53,7 +54,6 @@ class Config(object):
     DEBUG = False
     FLASK_APP = "GPU_SDR"
     GLOBAL_MEASURES_PATH = GLOBAL_MEASURES_PATH
-    GLOBAL_PLOTS_PATH = GLOBAL_PLOTS_PATH
     REDIS_WORKERS = REDIS_WORKERS
     APP_ADDR = APP_ADDR
 
@@ -67,7 +67,7 @@ login = LoginManager(app)
 login.login_view = 'login'
 bootstrap = Bootstrap(app)
 socketio = SocketIO(app)
-
+Session(app)
 import jobs
 # Analysis job stack
 job_manager = jobs.Job_Processor()
@@ -135,15 +135,6 @@ if __name__ == '__main__':
         try:
             print("creating path...")
             os.mkdir(GLOBAL_MEASURES_PATH)
-        except OsError:
-            print("Cannot create path.")
-            exit()
-
-    if not os.path.isdir(GLOBAL_PLOTS_PATH):
-        print("cannot find measurement path: %s"%GLOBAL_PLOTS_PATH)
-        try:
-            print("creating path...")
-            os.mkdir(GLOBAL_PLOTS_PATH)
         except OsError:
             print("Cannot create path.")
             exit()

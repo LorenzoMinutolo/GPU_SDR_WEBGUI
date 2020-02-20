@@ -67,11 +67,10 @@ socket.on( 'update_job_resopnse', function( msg ) {
         //console.log(info[i])
         if (info[i]['status'] !== 'failed'){
           //console.log(info[i]['status'])
-          var msg = alertify.success('<b>Analysis job compelte</b><br>'+info[i]['name']);
+          alertify.success('<b>Analysis job compelte</b><br>'+info[i]['name']).delay(0);
         }else{
-          var msg = alertify.error('<b>Analysis job failed</b><br>'+info[i]['name']);
+          alertify.error('<b>Analysis job failed</b><br>'+info[i]['name']).delay(0);
         }
-        msg.delay(0);
         update_local_storage(info[i]['name'])
       }
     }

@@ -5,7 +5,7 @@ import numpy as np
 import pyUSRP as u
 from flask_socketio import emit
 from flask_login import current_user
-from app import socketio, check_connection, measure_manager, job_manager, app
+from app import socketio, check_connection, measure_manager, job_manager, app, session
 from tmp_management import clean_tmp_folder
 from diagnostic_text import *
 from models import add_file_selected, user_files_selected, remove_file_selected, clear_user_file_selected, add_file_source, consolidate_sources
@@ -117,8 +117,9 @@ def remove_select_from_folder(msg):
 @socketio.on('analysis_modal_config')
 def define_possible_analysis(msg):
     file_list = user_files_selected()
-    config = Analysis_Config(file_list)
+    config = Analysis_Config(file_list) # TODO: move it to user space.
     config.check_file_list() # Determine which analysis on which file
+    session['analysis_config'] = config
     socketio.emit('analyze_config_modal',json.dumps(config.config))
 
 
@@ -171,3 +172,18 @@ def init_test_run_handler(msg):
         job_manager.submit_job(init_dry_run, arguments = arguments, name = name, depends = None)
     if name != "":
         socketio.emit('init_test_run',json.dumps({'last':name}))
+
+@socketio.on('run_analysis')
+def run_analysis(msg):
+    clear_all_selected_files({})
+    print('updating configuration variable...')
+    config = session.get('analysis_config')
+    config.update_configuration(msg['params'])
+    session['analysis_config'] = config
+    print(config.pprint())
+    print("building job queue...")
+    config.build_job_queue()
+    print("sorting job queue...")
+    config.sort_job_queue()
+    print("submitting jobs...")
+    config.enqueue_jobs()

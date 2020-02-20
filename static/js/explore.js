@@ -364,6 +364,9 @@ function config_excluded_files(jdict){
 function config_single_analysis_headers(jdict){
   for (var key in jdict) {
     if (jdict.hasOwnProperty(key)) {
+
+      document.getElementById(key+'-analysis-chk').checked = false
+
       if (parseInt(jdict[key]['available'])){
         //fill file table
         var text = ''
@@ -380,13 +383,20 @@ function config_single_analysis_headers(jdict){
         document.getElementById(key+'-analysis-files').innerHTML = text
         //header
         document.getElementById(key+'-analysis-header').innerHTML = "files: "+jdict[key]['files'].length
+
+        document.getElementById(key+'-analysis-chk').disabled = false
+
+        document.getElementById(key+'-files').style["display"] = "block"
+
+        jQuery('#'+key+'-analysis-body').show();
       }else{
         //header
         document.getElementById(key+'-analysis-header').innerHTML = "<span class=\"glyphicon glyphicon-remove\"></span>"
         //disable file tab
         document.getElementById(key+'-files').style["display"] = "none"
         //display failure message
-        document.getElementById(key+'-analysis-body').innerHTML = jdict[key]['reason']
+        //document.getElementById(key+'-analysis-body').innerHTML = jdict[key]['reason']
+        jQuery('#'+key+'-analysis-body').hide();
         //uncheckable item
         document.getElementById(key+'-analysis-chk').disabled = true
       }
@@ -495,6 +505,7 @@ function collect_init_fit_params(){
     }
   }
 }
+
 function init_test_run(){
   init_params = collect_init_fit_params()
   if(init_params){
@@ -503,4 +514,40 @@ function init_test_run(){
     // check if the queues are empty? execute in local? with thread control?(pretty cool)?
     // block until the socket push is received
   }
+}
+
+function gather_analysis_parameters(){
+  console.log("Gathering analysis parameters...")
+
+  // Common instructions for all analysis, just if it's requested or not
+  for (var key in analysis_config['single']) {
+    if (analysis_config['single'].hasOwnProperty(key)) {
+      if (parseInt(analysis_config['single'][key]['available'])){
+        if(document.getElementById(key+'-analysis-chk').checked){
+          analysis_config['single'][key]['requested'] = 1
+        }else{
+          analysis_config['single'][key]['requested'] = 0
+        }
+      }
+    }
+  }
+
+}
+
+function enqueue_all_jobs(){
+  console.log("RUN analysis")
+
+
+  // gather parameters
+  gather_analysis_parameters()
+
+  // send analysis_config back with parameters
+  socket.emit('run_analysis', {'params':analysis_config});
+
+  // Conform the selection
+  $(".file_checkbox").prop("checked", false);
+  uncheck_all_tree();
+
+  // Close the form
+  jQuery('#analysis-modal').modal('hide');
 }

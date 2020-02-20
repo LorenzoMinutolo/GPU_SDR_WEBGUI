@@ -138,6 +138,7 @@ class Analysis_Config(object):
         # Alolows thread-safe operations on self.config
         # may be usefull when operating in with large amount of files as the checks can be parallelized
         self.lock = Lock()
+        self.joblist = []
 
     def convert_filenames(self):
         '''
@@ -330,20 +331,68 @@ class Analysis_Config(object):
             '''
 
         # at this point the config is done
-        #pp = pprint.PrettyPrinter(indent=4)
-        #pp.pprint(self.config)
 
-    def build_job_queue(self, web_request):
+
+    def pprint(self):
+        '''
+        Diagnostic for the analisis config dictionary. Just print it nicely
+        '''
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(self.config)
+
+    def update_configuration(self, config):
+        '''
+        For now it's just a variable update. TODO Will include cross-check on parameters to avoid invalid configurations
+        '''
+        self.config = config
+
+    def find_dependencies(self, filename):
+        '''
+        Find if the file has multiple analysis jobs assigned and return job name dependance (hopefully)
+        '''
+
+        #backward run through the list
+        rev_list = self.joblist[::-1]
+        depends = None
+        for i in range(len(rev_list)):
+            if rev_list[i]['filename'] == filename:
+                depends = rev_list[i]['name']
+                break
+        return depends
+
+    def build_job_queue(self):
         '''
         Build the measure list of dict.
         '''
 
+        for key in self.config['single'].keys():
+            if int(self.config['single'][key]['requested']):
+                for i in range(len(self.config['single'][key]['files'])):
+                    self.joblist.append({
+                        'type':key,
+                        # The absolute path for the redis worker
+                        'file':os.path.join(app.config["GLOBAL_MEASURES_PATH"],os.path.join(self.config['single'][key]['paths'][i],self.config['single'][key]['files'][i])),
+                        'arguments':self.config['single'][key]['parameters'],
+                        # will be taken care in future development
+                        'depends':self.find_dependencies(self.config['single'][key]['files'][i]),
+                        'filename':self.config['single'][key]['files'][i],
+                        # note that the _on_ character is used for discriminating read mode file access and managing dependencies
+                        'name': "%s_on_%s" % (key, self.config['single'][key]['files'][i])
+                    })
+
     def sort_job_queue(self):
         '''
         Define the order of the measure queue.
+        For now consecutive measures are not developed so this function is used but empty
         '''
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(self.joblist)
 
-    def enqueue_job(self):
+
+    def enqueue_jobs(self):
         '''
         Enqueue each analysis job
         '''
+        for i in range(len(self.joblist)):
+            submit_job_wrapper(self.joblist[i])
+        #job_manager.submit_job(init_dry_run, arguments = arguments, name = name, depends = None)

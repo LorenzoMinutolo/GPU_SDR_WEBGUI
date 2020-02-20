@@ -186,10 +186,11 @@ class Job_Processor(object):
                             'enqueued':str(job.enqueued_at)[:-7],
                             'result':job.result
                         }
+                    tmp_list.append(current_job)
                 except rq.exceptions.NoSuchJobError:
                     current_job['status'] = '?'
 
-                tmp_list.append(current_job)
+
             for x in tmp_list:
                 job_queue.put(x)
             lock.release()
@@ -272,6 +273,22 @@ class Job_Processor(object):
         )
         self.lock.release()
         print("Job %s added"%name)
+
+    def clear_nonactive_joblist(self):
+        '''
+        Clear the done/failed job list.
+        '''
+        print("Clearing non-active job queue...")
+        self.lock.acquire()
+        while not self.job_queue.empty():
+            current_job = self.job_queue.get()
+            try:
+                job = Job.fetch(id = current_job['name'], connection=self.conn)
+                if (current_job['status'] == 'queued') or (current_job['status'] == 'started'):
+                    tmp_list.append(current_job)
+            except rq.exceptions.NoSuchJobError:
+                pass
+        self.lock.release()
 
     def chk_job(self, job_name):
         jobs = self.get_jobs()

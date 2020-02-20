@@ -41,3 +41,4 @@ Thumbs.db
 __pycache__
 *.db
 migrations
+flask_session

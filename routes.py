@@ -94,7 +94,6 @@ def get_folder_struct(path):
     for i in range(len(path_components)):
         if i > 0:
             path_components[i] = os.path.join(path_components[i-1],path_components[i])
-    print(path_components)
 
     for i in range(len(arg)):
         if file_counts[i] == 0:
