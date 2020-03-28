@@ -18,31 +18,21 @@
       <div class="panel-body", id = "usrp-info">
 
       {% if binary_connected%}
-      {% for usrp in usrp_prop %}
-
-      {% for key,value in usrp.items() %}
-      {{key}} : {{value}}<br>
-      {% endfor %}<br>
-
-      {% for dcard in dcard_prop %}
-      {% for key,value in dcard.items() %}
-      {{key}} : {{value}}<br>
-      {% endfor %}<br>
-
-      {% endfor %}
+      {% for i in range(usrp_prop|length) %}
+      USRP device {{i}}:
+      {{usrp_prop[i]|safe}}<br>
       {% endfor %}
       {%endif%}
       </div>
 
       <div class="panel-body", id = "gpu-info">
       {% if binary_connected%}
-      {% for gpu in gpu_prop %}
-      {% for key,value in gpu.items() %}
-      {{key}} : {{value}}<br>
-      {% endfor %}<br>
+      {% for i in range(gpu_prop|length) %}
+      {{gpu_prop[i]|safe}}<br>
       {% endfor %}
-      </div>
       {%endif%}
+      </div>
+
     </div>
   </div>
 </div>

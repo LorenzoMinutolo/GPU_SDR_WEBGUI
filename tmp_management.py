@@ -79,6 +79,7 @@ def clean_full_temporary_folder():
     self explanatory
     '''
     global tmp_path
+    check_tmp_folder()
     for filename in os.listdir(tmp_path):
         file_path = os.path.join(tmp_path, filename)
         try:

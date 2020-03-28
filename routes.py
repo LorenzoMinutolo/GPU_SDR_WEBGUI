@@ -17,6 +17,7 @@ from models import user_files_selected, user_files_source
 from app import u, check_connection
 from tmp_management import get_tmp_folder
 import base64
+from jobs import proxy2dict
 
 @app.before_request
 def before_request():
@@ -181,11 +182,15 @@ def index_about():
 @app.route('/connections', methods=['GET', 'POST'])
 @login_required
 def connections():
+    format_usrp_props = u.SERVER_INFO['usrp_props']
+    format_usrp_props.replace("\n", "<br>")
+    format_gpu_props = u.SERVER_INFO['gpu_props']
+    format_gpu_props.replace("\n", "<br>")
+    print(u.SERVER_INFO['usrp_props'])
     return render_template('connections.html', title='manage_connections',
         binary_connected = int(check_connection()),
-        usrp_prop = [{'name': 'usrp_name', 'serial':'XCNN345'}],
-        dcard_prop = [{'name':'wbx-fake','range':'100 MHz - 6 GHz'},{'name':'wbx-fake','range':'100 MHz - 6 GHz'}],
-        gpu_prop = [{'name':'gtx2070 max-q','cuda_cores':1236},{'name':'gtx2070 max-q','cuda_cores':1236}],
+        usrp_prop = [format_usrp_props],
+        gpu_prop = [format_gpu_props],
     )
 
 @app.route('/index_help')

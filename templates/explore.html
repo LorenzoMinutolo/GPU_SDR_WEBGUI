@@ -595,7 +595,15 @@ var currently_selected = []
           <div id="collapse-psd" class="panel-collapse collapse">
             <div class="panel-body">
               <div id = "psd-analysis-body" style = "margin:10px">
-              psd options
+
+                <label data-toggle="tooltip" title="How many subsegmant to condider using the Welch method. Default is one and represent normal fft."> Whelch segments </label>
+                <input style = "width: 100%; clear: both; margin-bottom:10px;" type="text" name="welch-psd" value="1", id = 'whelch-opt-psd'><br>
+
+                <label data-toggle="tooltip" title="Enable or disable the analysis in dBc. Default is in dBm."> dBc </label>
+                <input type="checkbox" id = "dbc-psd-chk">
+
+                <label data-toggle="tooltip" title="Enable or disable the common mode noise reduction. Only works if there is more than one channel available and fallback on normal analysis othewise."> Remove common mode </label>
+                <input type="checkbox" id = "commonmode-psd-chk">
               </div>
 
               <!-- Files display -->

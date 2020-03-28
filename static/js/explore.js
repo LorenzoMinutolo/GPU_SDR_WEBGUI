@@ -468,6 +468,17 @@ function show_fit_sourcefiles(option){
   document.getElementById("sel_source_fit").innerHTML = text
 }
 
+function collect_psd_params(){
+  var dbc = document.getElementById("dbc-psd-chk").checked;
+  var commonmode = document.getElementById("commonmode-psd-chk").checked;
+  var welch = document.getElementById("whelch-opt-psd").value;
+  return {
+    'dbc':dbc,
+    'welch':welch,
+    'commonmode':commonmode
+  }
+}
+
 function collect_init_fit_params(){
   var thr = document.getElementById("fit-thr-chk")
   var alt = document.getElementById("fit-alt-chk")
